@@ -15,7 +15,7 @@ const B = ({ w, h, bg, br = 0, style = {} }: {
   <div style={{ width: w, height: h, background: bg, borderRadius: br, flexShrink: 0, ...style }} />
 );
 
-export const Chef: React.FC<ChefProps> = ({ isMoving = false, direction = 'right' }) => {
+export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = false, direction = 'right' }) {
   const OUTLINE = '1.5px solid #000';
 
   return (
@@ -258,4 +258,4 @@ export const Chef: React.FC<ChefProps> = ({ isMoving = false, direction = 'right
       </motion.div>
     </div>
   );
-};
+});

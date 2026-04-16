@@ -155,6 +155,205 @@ function getResultComment(score: number): string {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// ステーション描画（chefPos / ovenBroken が変わった時だけ再描画）
+// ══════════════════════════════════════════════════════════════════════
+interface KitchenStationsProps {
+  chefPos: { x: number; y: number };
+  ovenBroken: boolean;
+}
+
+const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroken }: KitchenStationsProps) {
+  const FRONT_H = 7;
+  const PAD     = 3;
+
+  type StationDef = {
+    top: string; front: string; border: string; highlight: string;
+    label: string; glow: string; zLayer?: number;
+    content: React.ReactNode;
+  };
+
+  return (
+    <>
+      {Object.entries(STATIONS).map(([type, pos]) => {
+        if (type === 'NONE') return null;
+        const isActive =
+          Math.round(chefPos.x) === Math.round(pos.x) &&
+          Math.round(chefPos.y) === Math.round(pos.y);
+        const isOvenError = type === 'OVEN' && ovenBroken;
+
+        const stationDefs: Record<string, StationDef> = {
+          PREP: {
+            top: 'linear-gradient(170deg, #d4a060 0%, #a86828 100%)',
+            front: '#6a3808', border: '#3a1800', highlight: 'rgba(255,200,100,0.5)',
+            label: 'まな板', glow: 'rgba(255,200,80,0.45)', zLayer: 5,
+            content: (
+              <>
+                <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(8deg, transparent, transparent 5px, rgba(60,20,0,0.22) 5px, rgba(60,20,0,0.22) 6px)' }} />
+                <div className="absolute inset-[5px] rounded-sm border pointer-events-none" style={{ borderColor: 'rgba(80,30,0,0.3)' }} />
+                <span style={{ fontSize: 22, zIndex: 2, position: 'relative' }}>🔪</span>
+              </>
+            ),
+          },
+          STOVE: {
+            top: 'linear-gradient(170deg, #686868 0%, #383838 100%)',
+            front: '#181818', border: '#080808', highlight: 'rgba(150,150,150,0.4)',
+            label: 'コンロ', glow: 'rgba(255,120,0,0.55)', zLayer: 5,
+            content: (
+              <>
+                <div className="absolute top-[8px] left-0 right-0 h-px pointer-events-none" style={{ background: 'rgba(255,255,255,0.15)' }} />
+                <div className="relative z-10 flex items-center justify-center" style={{ width: 34, height: 34 }}>
+                  <div className="absolute rounded-full border-[2.5px]" style={{ width: 34, height: 34, borderColor: '#aaa' }} />
+                  <div className="absolute rounded-full border-2"      style={{ width: 22, height: 22, borderColor: '#999' }} />
+                  <div className="absolute rounded-full border"        style={{ width: 12, height: 12, borderColor: '#888' }} />
+                  <div className="absolute rounded-full"               style={{ width: 5,  height: 5,  background: '#777' }} />
+                </div>
+                {isActive && (
+                  <motion.div className="absolute pointer-events-none rounded-full"
+                    style={{ width: 32, height: 32, background: 'radial-gradient(circle, rgba(255,200,0,1) 0%, rgba(255,80,0,0.8) 40%, transparent 70%)' }}
+                    animate={{ scale: [0.85, 1.15, 0.85], opacity: [0.8, 1, 0.8] }}
+                    transition={{ repeat: Infinity, duration: 0.3 }}
+                  />
+                )}
+              </>
+            ),
+          },
+          OVEN: {
+            top: isOvenError
+              ? 'linear-gradient(170deg, #3a1010 0%, #1a0808 100%)'
+              : 'linear-gradient(170deg, #606060 0%, #343434 100%)',
+            front: '#141414', border: isOvenError ? '#ff3030' : '#060606',
+            highlight: isOvenError ? 'rgba(255,80,80,0.5)' : 'rgba(120,120,120,0.35)',
+            label: isOvenError ? '！OVEN ERROR' : 'オーブン',
+            glow: isOvenError ? 'rgba(255,50,50,0.7)' : 'rgba(255,140,0,0.5)',
+            zLayer: 5,
+            content: (
+              <>
+                <div className="relative z-10 flex items-center justify-center" style={{
+                  width: '66%', height: '46%',
+                  background: isOvenError ? 'rgba(120,0,0,0.8)' : isActive ? 'rgba(80,30,0,0.9)' : 'rgba(8,8,8,0.95)',
+                  border: `2px solid ${isOvenError ? '#ff4040' : '#606060'}`,
+                  borderRadius: 4,
+                }}>
+                  {isOvenError ? (
+                    <motion.span style={{ fontSize: 18 }}
+                      animate={{ opacity: [1, 0.2, 1] }}
+                      transition={{ repeat: Infinity, duration: 0.4 }}
+                    >⚠️</motion.span>
+                  ) : isActive ? (
+                    <motion.div style={{ width: '70%', height: '70%', borderRadius: 3, background: 'radial-gradient(circle, rgba(255,220,0,1) 0%, rgba(255,100,0,0.8) 50%, rgba(180,20,0,0.4) 80%, transparent 100%)' }}
+                      animate={{ opacity: [0.75, 1, 0.75] }} transition={{ repeat: Infinity, duration: 0.35 }}
+                    />
+                  ) : (
+                    <div style={{ width: '65%', height: '65%', border: '1px solid #444', borderRadius: 2 }} />
+                  )}
+                </div>
+                <div className="z-10 flex gap-[5px] mt-[3px]" style={{ position: 'relative' }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #d0d0d0, #707070)', border: '1.5px solid #404040', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 1.5, height: 3.5, background: '#404040', borderRadius: 1 }} />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ),
+          },
+          GARNISH: {
+            top: 'linear-gradient(180deg, #504038 0%, #302820 100%)',
+            front: '#181008', border: '#080400', highlight: 'rgba(130,100,50,0.4)',
+            label: '揚場', glow: 'rgba(200,140,0,0.55)', zLayer: 5,
+            content: (
+              <>
+                <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: '40%', background: 'linear-gradient(180deg, rgba(180,110,0,0.6) 0%, rgba(140,70,0,0.9) 100%)' }} />
+                <div className="absolute pointer-events-none" style={{ bottom: '39%', left: '10%', right: '10%', height: 2, background: 'linear-gradient(90deg, transparent, rgba(255,200,80,0.6), transparent)' }} />
+                <div className="relative z-10" style={{ width: 34, height: 26, border: '2.5px solid #909090', borderRadius: '3px 3px 9px 9px', background: ['repeating-linear-gradient(0deg, transparent, transparent 4px, rgba(200,200,200,0.2) 4px, rgba(200,200,200,0.2) 5px)', 'repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(200,200,200,0.2) 4px, rgba(200,200,200,0.2) 5px)'].join(', '), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 8px rgba(0,0,0,0.5)', marginBottom: 3 }}>
+                  <span style={{ fontSize: 17, zIndex: 2, position: 'relative' }}>🍟</span>
+                </div>
+                <div className="absolute z-10" style={{ top: 4, left: '50%', marginLeft: -11, width: 22, height: 8, border: '2.5px solid #a0a0a0', borderBottom: 'none', borderRadius: '8px 8px 0 0' }} />
+                {[0, 1, 2, 3].map(i => (
+                  <motion.div key={i} className="absolute rounded-full pointer-events-none"
+                    style={{ width: 3 + (i % 2) * 2, height: 3 + (i % 2) * 2, background: `rgba(220,160,0,${isActive ? 0.95 : 0.5})`, bottom: 5 + i * 3, left: `${18 + i * 18}%` }}
+                    animate={{ y: [0, -(8 + i * 3), 0], opacity: [1, 0.1, 1] }}
+                    transition={{ repeat: Infinity, duration: isActive ? 0.28 + i * 0.06 : 0.8 + i * 0.18, delay: i * 0.1 }}
+                  />
+                ))}
+              </>
+            ),
+          },
+          TABLE: {
+            top: 'linear-gradient(170deg, #f8f4f0 0%, #e8e0d8 100%)',
+            front: '#c0b0a0', border: '#907060', highlight: 'rgba(255,255,255,0.6)',
+            label: '作業台', glow: 'rgba(255,230,100,0.45)', zLayer: 10,
+            content: (
+              <>
+                <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: ['repeating-linear-gradient(115deg, transparent, transparent 9px, rgba(150,130,110,0.18) 9px, rgba(150,130,110,0.18) 10px)', 'repeating-linear-gradient(65deg, transparent, transparent 16px, rgba(160,140,120,0.12) 16px, rgba(160,140,120,0.12) 17px)'].join(', ') }} />
+                <div className="absolute inset-[4px] border rounded-sm pointer-events-none" style={{ borderColor: 'rgba(160,140,120,0.5)' }} />
+                <div className="absolute top-[28%] left-4 right-4 h-px pointer-events-none" style={{ background: 'rgba(150,130,110,0.4)' }} />
+                <span style={{ fontSize: 22, zIndex: 2, position: 'relative' }}>🍽️</span>
+              </>
+            ),
+          },
+          SERVE: {
+            top: 'linear-gradient(170deg, #fffff8 0%, #f0e8e0 100%)',
+            front: '#c0a890', border: '#907060', highlight: 'rgba(255,255,240,0.6)',
+            label: '盛り台', glow: 'rgba(255,240,160,0.5)', zLayer: 5,
+            content: (
+              <>
+                <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(125deg, transparent, transparent 10px, rgba(200,180,160,0.15) 10px, rgba(200,180,160,0.15) 11px)' }} />
+                <div className="absolute inset-[4px] rounded-sm border pointer-events-none" style={{ borderColor: 'rgba(180,160,140,0.6)' }} />
+                <div className="absolute top-[20%] left-3 right-3 h-[1.5px] pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(200,160,60,0.5), transparent)' }} />
+                <span style={{ fontSize: 22, zIndex: 2, position: 'relative' }}>🛎️</span>
+              </>
+            ),
+          },
+        };
+
+        const def = stationDefs[type];
+        if (!def) return null;
+
+        return (
+          <div key={type} className="absolute pointer-events-none"
+               style={{ left: `${pos.x * 20}%`, top: `${pos.y * 20}%`, width: '20%', height: '20%', padding: `${PAD}px ${PAD}px ${PAD + FRONT_H}px ${PAD}px`, zIndex: def.zLayer ?? 5 }}>
+            <motion.div
+              animate={isActive && !isOvenError ? { scale: 1.07, y: -2 } : { scale: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              style={{
+                width: '100%', height: '100%',
+                background: def.top,
+                border: `2px solid ${def.border}`,
+                borderTop: `2px solid ${def.highlight}`,
+                borderRadius: '5px 5px 2px 2px',
+                boxShadow: [
+                  `0 ${FRONT_H}px 0 0 ${def.front}`,
+                  `0 ${FRONT_H + 4}px 0 0 rgba(0,0,0,0.5)`,
+                  isOvenError
+                    ? `0 0 0 2px rgba(255,50,50,0.7), 0 0 20px rgba(255,50,50,0.5)`
+                    : isActive ? `0 0 0 2px ${def.glow}, 0 0 18px ${def.glow}` : '0 3px 10px rgba(0,0,0,0.7)',
+                ].join(', '),
+                overflow: 'hidden',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                position: 'relative',
+              }}
+            >
+              {def.content}
+              <div className="absolute bottom-[3px] px-[6px] py-[2px] rounded"
+                   style={{ background: isOvenError ? 'rgba(150,0,0,0.9)' : 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.1)', zIndex: 20 }}>
+                <span style={{ fontSize: '0.38rem', color: isOvenError ? '#ff8080' : '#e8e0d0', fontWeight: 800, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{def.label}</span>
+              </div>
+              {isActive && !isOvenError && (
+                <motion.div className="absolute inset-0 pointer-events-none"
+                  style={{ background: `radial-gradient(circle, ${def.glow} 0%, transparent 70%)` }}
+                  animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.45 }}
+                />
+              )}
+            </motion.div>
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
+// ══════════════════════════════════════════════════════════════════════
 export default function App() {
 
   // ─── ゲーム基本 State ────────────────────────────────────────────
@@ -195,6 +394,12 @@ export default function App() {
   const movingTimerRef        = useRef<NodeJS.Timeout | null>(null);
   /** キッチン div の ref（実寸計測用） */
   const kitchenRef            = useRef<HTMLDivElement>(null);
+  /** useCallback 内で oilTiles を stale closure なしに参照するための ref */
+  const oilTilesRef           = useRef<{ x: number; y: number }[]>([]);
+  /** isPlaying を stable callback から参照するための ref */
+  const isPlayingRef          = useRef(false);
+  /** isGameOver を stable callback から参照するための ref */
+  const isGameOverRef         = useRef(false);
 
   const timerRef              = useRef<NodeJS.Timeout | null>(null);
   const orderTimerRef         = useRef<NodeJS.Timeout | null>(null);
@@ -214,9 +419,12 @@ export default function App() {
   const chefPosRef = useRef({ x: 2, y: 2 });
 
   // ─── State → Ref 同期 ────────────────────────────────────────────
-  useEffect(() => { activeTroubleRef.current = activeTrouble;       }, [activeTrouble]);
-  useEffect(() => { ovenBrokenRef.current    = ovenBroken;          }, [ovenBroken]);
-  useEffect(() => { chefPosRef.current       = gameState.chefPos;   }, [gameState.chefPos]);
+  useEffect(() => { activeTroubleRef.current  = activeTrouble;          }, [activeTrouble]);
+  useEffect(() => { ovenBrokenRef.current     = ovenBroken;             }, [ovenBroken]);
+  useEffect(() => { chefPosRef.current        = gameState.chefPos;      }, [gameState.chefPos]);
+  useEffect(() => { oilTilesRef.current       = oilTiles;               }, [oilTiles]);
+  useEffect(() => { isPlayingRef.current      = isPlaying;              }, [isPlaying]);
+  useEffect(() => { isGameOverRef.current     = gameState.isGameOver;   }, [gameState.isGameOver]);
 
   // ══════════════════════════════════════════════════════════════════
   // アナウンスバナー表示
@@ -349,15 +557,23 @@ export default function App() {
   // シェフ移動
   // ══════════════════════════════════════════════════════════════════
 
+  /** 移動後に歩行アニメーションを短時間オンにする */
+  const flashMoving = useCallback(() => {
+    setIsChefMoving(true);
+    if (movingTimerRef.current) clearTimeout(movingTimerRef.current);
+    movingTimerRef.current = setTimeout(() => setIsChefMoving(false), 350);
+  }, []);
+
   /**
    * シェフを移動する。
    * 油エリアを踏むと移動は通るが残り時間 -10 秒のペナルティ。
+   * oilTilesRef を使うことで stale closure を回避。
    */
-  const moveChef = (nx: number, ny: number) => {
+  const moveChef = useCallback((nx: number, ny: number) => {
     const targetX = Math.max(0, Math.min(4, Math.round(nx)));
     const targetY = Math.max(0, Math.min(4, Math.round(ny)));
 
-    const hitOil = oilTiles.some(t => t.x === targetX && t.y === targetY);
+    const hitOil = oilTilesRef.current.some(t => t.x === targetX && t.y === targetY);
     if (hitOil) {
       setOilTiles(prev => prev.filter(t => !(t.x === targetX && t.y === targetY)));
       setGameState(prev => ({
@@ -373,33 +589,25 @@ export default function App() {
 
     setGameState(prev => ({ ...prev, chefPos: { x: targetX, y: targetY } }));
     flashMoving();
-  };
+  }, [addPopup, triggerSlipEffect, flashMoving]);
 
-  /** 移動後に歩行アニメーションを短時間オンにする */
-  const flashMoving = () => {
-    setIsChefMoving(true);
-    if (movingTimerRef.current) clearTimeout(movingTimerRef.current);
-    movingTimerRef.current = setTimeout(() => setIsChefMoving(false), 350);
-  };
-
-  /** 方向パッドからの移動 */
-  const handleDpad = (dx: number, dy: number) => {
-    const nx = gameState.chefPos.x + dx;
-    const ny = gameState.chefPos.y + dy;
+  /** 方向パッドからの移動（chefPosRef で stale closure 回避） */
+  const handleDpad = useCallback((dx: number, dy: number) => {
+    const nx = chefPosRef.current.x + dx;
+    const ny = chefPosRef.current.y + dy;
     moveChef(nx, ny);
-    flashMoving();
     if (dx > 0) setChefDirection('right');
     if (dx < 0) setChefDirection('left');
-  };
+  }, [moveChef]);
 
   /** スワイプ開始 */
-  const handleKitchenPointerDown = (e: React.PointerEvent) => {
-    if (!isPlaying || gameState.isGameOver) return;
+  const handleKitchenPointerDown = useCallback((e: React.PointerEvent) => {
+    if (!isPlayingRef.current || isGameOverRef.current) return;
     swipeStartRef.current = { x: e.clientX, y: e.clientY };
-  };
+  }, []);
 
   /** スワイプ終了 → 方向判定して1マス移動 */
-  const handleKitchenPointerUp = (e: React.PointerEvent) => {
+  const handleKitchenPointerUp = useCallback((e: React.PointerEvent) => {
     if (!swipeStartRef.current) return;
     const dx = e.clientX - swipeStartRef.current.x;
     const dy = e.clientY - swipeStartRef.current.y;
@@ -415,7 +623,7 @@ export default function App() {
     } else {
       handleDpad(0, dy > 0 ? 1 : -1);
     }
-  };
+  }, [handleDpad]);
 
   // ══════════════════════════════════════════════════════════════════
   // ステーション到達判定（料理完成 / コンボ / トラブルリセット）
@@ -883,11 +1091,8 @@ export default function App() {
             overflow: 'visible',
             border: '3px solid #909898',
             outline: '3px solid #505858',
-            boxShadow: [
-              '0 0 0 1px #b0b8c040',
-              '0 0 20px rgba(160,200,220,0.15)',
-              '0 20px 60px rgba(0,0,0,0.8)',
-            ].join(', '),
+            boxShadow: '0 0 20px rgba(160,200,220,0.15), 0 20px 60px rgba(0,0,0,0.8)',
+            transform: 'translateZ(0)',
           }}
         >
           {/* 床タイル */}
@@ -994,191 +1199,8 @@ export default function App() {
             ))}
           </AnimatePresence>
 
-          {/* ═══════ 調理ステーション ═══════ */}
-          {Object.entries(STATIONS).map(([type, pos]) => {
-            if (type === 'NONE') return null;
-            const isActive =
-              Math.round(gameState.chefPos.x) === Math.round(pos.x) &&
-              Math.round(gameState.chefPos.y) === Math.round(pos.y);
-            const isOvenError = type === 'OVEN' && ovenBroken;
-
-            const FRONT_H = 7;
-            const PAD     = 3;
-
-            type StationDef = {
-              top: string; front: string; border: string; highlight: string;
-              label: string; glow: string; zLayer?: number;
-              content: React.ReactNode;
-            };
-
-            const stationDefs: Record<string, StationDef> = {
-              PREP: {
-                top: 'linear-gradient(170deg, #d4a060 0%, #a86828 100%)',
-                front: '#6a3808', border: '#3a1800', highlight: 'rgba(255,200,100,0.5)',
-                label: 'まな板', glow: 'rgba(255,200,80,0.45)', zLayer: 5,
-                content: (
-                  <>
-                    <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(8deg, transparent, transparent 5px, rgba(60,20,0,0.22) 5px, rgba(60,20,0,0.22) 6px)' }} />
-                    <div className="absolute inset-[5px] rounded-sm border pointer-events-none" style={{ borderColor: 'rgba(80,30,0,0.3)' }} />
-                    <span style={{ fontSize: 22, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.6))', zIndex: 2, position: 'relative' }}>🔪</span>
-                  </>
-                ),
-              },
-              STOVE: {
-                top: 'linear-gradient(170deg, #686868 0%, #383838 100%)',
-                front: '#181818', border: '#080808', highlight: 'rgba(150,150,150,0.4)',
-                label: 'コンロ', glow: 'rgba(255,120,0,0.55)', zLayer: 5,
-                content: (
-                  <>
-                    <div className="absolute top-[8px] left-0 right-0 h-px pointer-events-none" style={{ background: 'rgba(255,255,255,0.15)' }} />
-                    <div className="relative z-10 flex items-center justify-center" style={{ width: 34, height: 34 }}>
-                      <div className="absolute rounded-full border-[2.5px]" style={{ width: 34, height: 34, borderColor: '#aaa' }} />
-                      <div className="absolute rounded-full border-2"      style={{ width: 22, height: 22, borderColor: '#999' }} />
-                      <div className="absolute rounded-full border"        style={{ width: 12, height: 12, borderColor: '#888' }} />
-                      <div className="absolute rounded-full"               style={{ width: 5,  height: 5,  background: '#777' }} />
-                    </div>
-                    {isActive && (
-                      <motion.div className="absolute pointer-events-none rounded-full"
-                        style={{ width: 32, height: 32, background: 'radial-gradient(circle, rgba(255,200,0,1) 0%, rgba(255,80,0,0.8) 40%, transparent 70%)' }}
-                        animate={{ scale: [0.85, 1.15, 0.85], opacity: [0.8, 1, 0.8] }}
-                        transition={{ repeat: Infinity, duration: 0.3 }}
-                      />
-                    )}
-                  </>
-                ),
-              },
-              OVEN: {
-                top: isOvenError
-                  ? 'linear-gradient(170deg, #3a1010 0%, #1a0808 100%)'
-                  : 'linear-gradient(170deg, #606060 0%, #343434 100%)',
-                front: '#141414', border: isOvenError ? '#ff3030' : '#060606',
-                highlight: isOvenError ? 'rgba(255,80,80,0.5)' : 'rgba(120,120,120,0.35)',
-                label: isOvenError ? '！OVEN ERROR' : 'オーブン',
-                glow: isOvenError ? 'rgba(255,50,50,0.7)' : 'rgba(255,140,0,0.5)',
-                zLayer: 5,
-                content: (
-                  <>
-                    <div className="relative z-10 flex items-center justify-center" style={{
-                      width: '66%', height: '46%',
-                      background: isOvenError ? 'rgba(120,0,0,0.8)' : isActive ? 'rgba(80,30,0,0.9)' : 'rgba(8,8,8,0.95)',
-                      border: `2px solid ${isOvenError ? '#ff4040' : '#606060'}`,
-                      borderRadius: 4,
-                    }}>
-                      {isOvenError ? (
-                        <motion.span style={{ fontSize: 18 }}
-                          animate={{ opacity: [1, 0.2, 1] }}
-                          transition={{ repeat: Infinity, duration: 0.4 }}
-                        >⚠️</motion.span>
-                      ) : isActive ? (
-                        <motion.div style={{ width: '70%', height: '70%', borderRadius: 3, background: 'radial-gradient(circle, rgba(255,220,0,1) 0%, rgba(255,100,0,0.8) 50%, rgba(180,20,0,0.4) 80%, transparent 100%)' }}
-                          animate={{ opacity: [0.75, 1, 0.75] }} transition={{ repeat: Infinity, duration: 0.35 }}
-                        />
-                      ) : (
-                        <div style={{ width: '65%', height: '65%', border: '1px solid #444', borderRadius: 2 }} />
-                      )}
-                    </div>
-                    <div className="z-10 flex gap-[5px] mt-[3px]" style={{ position: 'relative' }}>
-                      {[0, 1, 2].map(i => (
-                        <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #d0d0d0, #707070)', border: '1.5px solid #404040', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ width: 1.5, height: 3.5, background: '#404040', borderRadius: 1 }} />
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ),
-              },
-              GARNISH: {
-                top: 'linear-gradient(180deg, #504038 0%, #302820 100%)',
-                front: '#181008', border: '#080400', highlight: 'rgba(130,100,50,0.4)',
-                label: '揚場', glow: 'rgba(200,140,0,0.55)', zLayer: 5,
-                content: (
-                  <>
-                    <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: '40%', background: 'linear-gradient(180deg, rgba(180,110,0,0.6) 0%, rgba(140,70,0,0.9) 100%)' }} />
-                    <div className="absolute pointer-events-none" style={{ bottom: '39%', left: '10%', right: '10%', height: 2, background: 'linear-gradient(90deg, transparent, rgba(255,200,80,0.6), transparent)' }} />
-                    <div className="relative z-10" style={{ width: 34, height: 26, border: '2.5px solid #909090', borderRadius: '3px 3px 9px 9px', background: ['repeating-linear-gradient(0deg, transparent, transparent 4px, rgba(200,200,200,0.2) 4px, rgba(200,200,200,0.2) 5px)', 'repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(200,200,200,0.2) 4px, rgba(200,200,200,0.2) 5px)'].join(', '), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 8px rgba(0,0,0,0.5)', marginBottom: 3 }}>
-                      <span style={{ fontSize: 17, filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.7))' }}>🍟</span>
-                    </div>
-                    <div className="absolute z-10" style={{ top: 4, left: '50%', marginLeft: -11, width: 22, height: 8, border: '2.5px solid #a0a0a0', borderBottom: 'none', borderRadius: '8px 8px 0 0' }} />
-                    {[0, 1, 2, 3].map(i => (
-                      <motion.div key={i} className="absolute rounded-full pointer-events-none"
-                        style={{ width: 3 + (i % 2) * 2, height: 3 + (i % 2) * 2, background: `rgba(220,160,0,${isActive ? 0.95 : 0.5})`, bottom: 5 + i * 3, left: `${18 + i * 18}%` }}
-                        animate={{ y: [0, -(8 + i * 3), 0], opacity: [1, 0.1, 1] }}
-                        transition={{ repeat: Infinity, duration: isActive ? 0.28 + i * 0.06 : 0.8 + i * 0.18, delay: i * 0.1 }}
-                      />
-                    ))}
-                  </>
-                ),
-              },
-              TABLE: {
-                top: 'linear-gradient(170deg, #f8f4f0 0%, #e8e0d8 100%)',
-                front: '#c0b0a0', border: '#907060', highlight: 'rgba(255,255,255,0.6)',
-                label: '作業台', glow: 'rgba(255,230,100,0.45)', zLayer: 10,
-                content: (
-                  <>
-                    <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: ['repeating-linear-gradient(115deg, transparent, transparent 9px, rgba(150,130,110,0.18) 9px, rgba(150,130,110,0.18) 10px)', 'repeating-linear-gradient(65deg, transparent, transparent 16px, rgba(160,140,120,0.12) 16px, rgba(160,140,120,0.12) 17px)'].join(', ') }} />
-                    <div className="absolute inset-[4px] border rounded-sm pointer-events-none" style={{ borderColor: 'rgba(160,140,120,0.5)' }} />
-                    <div className="absolute top-[28%] left-4 right-4 h-px pointer-events-none" style={{ background: 'rgba(150,130,110,0.4)' }} />
-                    <span style={{ fontSize: 22, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))', zIndex: 2, position: 'relative' }}>🍽️</span>
-                  </>
-                ),
-              },
-              SERVE: {
-                top: 'linear-gradient(170deg, #fffff8 0%, #f0e8e0 100%)',
-                front: '#c0a890', border: '#907060', highlight: 'rgba(255,255,240,0.6)',
-                label: '盛り台', glow: 'rgba(255,240,160,0.5)', zLayer: 5,
-                content: (
-                  <>
-                    <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(125deg, transparent, transparent 10px, rgba(200,180,160,0.15) 10px, rgba(200,180,160,0.15) 11px)' }} />
-                    <div className="absolute inset-[4px] rounded-sm border pointer-events-none" style={{ borderColor: 'rgba(180,160,140,0.6)' }} />
-                    <div className="absolute top-[20%] left-3 right-3 h-[1.5px] pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(200,160,60,0.5), transparent)' }} />
-                    <span style={{ fontSize: 22, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))', zIndex: 2, position: 'relative' }}>🛎️</span>
-                  </>
-                ),
-              },
-            };
-
-            const def = stationDefs[type];
-            if (!def) return null;
-
-            return (
-              <div key={type} className="absolute pointer-events-none"
-                   style={{ left: `${pos.x * 20}%`, top: `${pos.y * 20}%`, width: '20%', height: '20%', padding: `${PAD}px ${PAD}px ${PAD + FRONT_H}px ${PAD}px`, zIndex: def.zLayer ?? 5 }}>
-                <motion.div
-                  animate={isActive && !isOvenError ? { scale: 1.07, y: -2 } : { scale: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                  style={{
-                    width: '100%', height: '100%',
-                    background: def.top,
-                    border: `2px solid ${def.border}`,
-                    borderTop: `2px solid ${def.highlight}`,
-                    borderRadius: '5px 5px 2px 2px',
-                    boxShadow: [
-                      `0 ${FRONT_H}px 0 0 ${def.front}`,
-                      `0 ${FRONT_H + 4}px 0 0 rgba(0,0,0,0.5)`,
-                      isOvenError
-                        ? `0 0 0 2px rgba(255,50,50,0.7), 0 0 20px rgba(255,50,50,0.5)`
-                        : isActive ? `0 0 0 2px ${def.glow}, 0 0 18px ${def.glow}` : '0 3px 10px rgba(0,0,0,0.7)',
-                    ].join(', '),
-                    overflow: 'hidden',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    position: 'relative',
-                  }}
-                >
-                  {def.content}
-                  <div className="absolute bottom-[3px] px-[6px] py-[2px] rounded"
-                       style={{ background: isOvenError ? 'rgba(150,0,0,0.9)' : 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.1)', zIndex: 20 }}>
-                    <span style={{ fontSize: '0.38rem', color: isOvenError ? '#ff8080' : '#e8e0d0', fontWeight: 800, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{def.label}</span>
-                  </div>
-                  {isActive && !isOvenError && (
-                    <motion.div className="absolute inset-0 pointer-events-none"
-                      style={{ background: `radial-gradient(circle, ${def.glow} 0%, transparent 70%)` }}
-                      animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.45 }}
-                    />
-                  )}
-                </motion.div>
-              </div>
-            );
-          })}
+          {/* ═══════ 調理ステーション（memo化コンポーネント） ═══════ */}
+          <KitchenStations chefPos={gameState.chefPos} ovenBroken={ovenBroken} />
 
           {/* ── フィールドポップアップ ── */}
           <AnimatePresence>
@@ -1246,6 +1268,7 @@ export default function App() {
             }}
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
             className="absolute z-50 pointer-events-none w-[20%] h-[20%] flex items-center justify-center"
+            style={{ willChange: 'transform' }}
           >
             <div className="relative scale-125">
               <Chef direction={chefDirection} isMoving={isChefMoving} x={0} y={0} />
@@ -1266,11 +1289,11 @@ export default function App() {
               <motion.div
                 key={order.id} layout
                 initial={{ x: 100, opacity: 0 }}
-                animate={{ x: isDanger ? [0, -2, 2, -2, 2, 0] : 0, opacity: 1 }}
+                animate={{ x: isDanger ? [0, -3, 3, 0] : 0, opacity: 1 }}
                 exit={{ x: -200, opacity: 0, rotate: -10 }}
                 transition={{
                   type: 'spring', stiffness: 300, damping: 30,
-                  x: isDanger ? { repeat: Infinity, duration: 0.2 } : { type: 'spring' },
+                  x: isDanger ? { repeat: Infinity, duration: 0.25 } : { type: 'spring' },
                 }}
                 className={`h-full p-2 rounded-sm border-l-4 shadow-xl flex flex-col justify-between transition-colors duration-300
                   ${order.orderType === 'course' ? 'min-w-[170px]' : 'min-w-[140px]'}
@@ -1357,7 +1380,7 @@ export default function App() {
         {!isPlaying && !gameState.isGameOver && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1a1a]/95 backdrop-blur-md p-4 overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1a1a]/95 p-4 overflow-y-auto"
           >
             <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }}
               className="max-w-md w-full rounded-lg bg-white p-6 text-center shadow-2xl border-4 border-[#d4af37] my-auto">
@@ -1386,7 +1409,7 @@ export default function App() {
         {gameState.isGameOver && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="fixed inset-0 z-50 flex items-start justify-center bg-[#1a1a1a]/98 backdrop-blur-xl p-4 overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-start justify-center bg-[#1a1a1a]/98 p-4 overflow-y-auto"
           >
             <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }}
               className="w-full max-w-md rounded-lg bg-white p-6 text-center shadow-2xl border-4 border-[#d4af37] my-4">
