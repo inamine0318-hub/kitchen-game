@@ -2,7 +2,7 @@
  * Pocket Kitchen - App.tsx
  * 機能: コンボシステム / トラブルシステム / 時間停止 追加版
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Chef } from './components/Chef';
 import {
@@ -193,6 +193,8 @@ export default function App() {
   const didSwipeRef           = useRef(false);
   /** 移動アニメーション消灯タイマー */
   const movingTimerRef        = useRef<NodeJS.Timeout | null>(null);
+  /** キッチン div の ref（実寸計測用） */
+  const kitchenRef            = useRef<HTMLDivElement>(null);
 
   const timerRef              = useRef<NodeJS.Timeout | null>(null);
   const orderTimerRef         = useRef<NodeJS.Timeout | null>(null);
@@ -392,6 +394,7 @@ export default function App() {
 
   /** スワイプ開始 */
   const handleKitchenPointerDown = (e: React.PointerEvent) => {
+    if (!isPlaying || gameState.isGameOver) return;
     swipeStartRef.current = { x: e.clientX, y: e.clientY };
   };
 
@@ -701,11 +704,24 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════════
   // レンダリング
   // ══════════════════════════════════════════════════════════════════
+
+  /** キッチン実寸からセルサイズを動的計算 */
+  const [kitchenPx, setKitchenPx] = useState(340);
+  useEffect(() => {
+    const measure = () => {
+      if (kitchenRef.current) setKitchenPx(kitchenRef.current.offsetWidth);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+  const cellSize = useMemo(() => kitchenPx / 5, [kitchenPx]);
+
   const isFrozen = timeFreezeRemaining > 0;
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden font-sans"
-         style={{ background: 'linear-gradient(180deg, #0e0b08 0%, #1a130e 100%)' }}>
+    <div className="w-full flex flex-col overflow-hidden font-sans"
+         style={{ height: '100dvh', background: 'linear-gradient(180deg, #0e0b08 0%, #1a130e 100%)' }}>
 
       {/* ── TIME FREEZE オーバーレイ ── */}
       <AnimatePresence>
@@ -845,8 +861,12 @@ export default function App() {
       </header>
 
       {/* ── キッチンフィールド ── */}
-      <main className="relative flex-1 flex flex-col items-center justify-center overflow-hidden"
-            style={{ background: 'radial-gradient(ellipse at 50% 30%, #1a1208 0%, #0a0806 100%)' }}>
+      <main
+        className="relative flex-1 flex flex-col items-center justify-center overflow-hidden"
+        style={{ background: 'radial-gradient(ellipse at 50% 30%, #1a1208 0%, #0a0806 100%)', touchAction: 'none' }}
+        onPointerDown={handleKitchenPointerDown}
+        onPointerUp={handleKitchenPointerUp}
+      >
 
         {/* スポットライト */}
         <div className="absolute inset-0 pointer-events-none"
@@ -854,12 +874,10 @@ export default function App() {
 
         {/* ──────── キッチン本体 ──────── */}
         <motion.div
+          ref={kitchenRef}
           animate={shakeControls}
-          onPointerDown={handleKitchenPointerDown}
-          onPointerUp={handleKitchenPointerUp}
           className="relative rounded"
           style={{
-            touchAction: 'none',
             width: 'min(88vw, 340px)',
             height: 'min(88vw, 340px)',
             overflow: 'visible',
@@ -1223,8 +1241,8 @@ export default function App() {
           {/* ── 2Dシェフ ── */}
           <motion.div
             animate={{
-              x: gameState.chefPos.x * 68,
-              y: gameState.chefPos.y * 68,
+              x: gameState.chefPos.x * cellSize,
+              y: gameState.chefPos.y * cellSize,
             }}
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
             className="absolute z-50 pointer-events-none w-[20%] h-[20%] flex items-center justify-center"
@@ -1235,33 +1253,11 @@ export default function App() {
           </motion.div>
         </motion.div>
 
-        {/* ── 方向パッド（モバイル操作） ── */}
-        {isPlaying && !gameState.isGameOver && (
-          <div className="flex items-center justify-center mt-2 gap-2 select-none z-[20]">
-            {([ ['◀', -1, 0, '左'], ['▲', 0, -1, '上'], ['▼', 0, 1, '下'], ['▶', 1, 0, '右'] ] as const).map(([icon, dx, dy, label]) => (
-              <button
-                key={label}
-                onPointerDown={() => handleDpad(dx, dy)}
-                aria-label={label}
-                className="active:scale-90 transition-transform"
-                style={{
-                  width: 54, height: 54, borderRadius: 14,
-                  background: 'linear-gradient(160deg, #3a3020 0%, #1e1208 100%)',
-                  border: '2px solid #c89030',
-                  color: '#ffe080', fontSize: 22, fontWeight: 900,
-                  boxShadow: '0 5px 0 #0a0600, 0 5px 14px rgba(0,0,0,0.7)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  touchAction: 'none', cursor: 'pointer',
-                }}
-              >{icon}</button>
-            ))}
-          </div>
-        )}
       </main>
 
       {/* ── オーダーエリア ── */}
-      <footer className="h-28 p-2 flex gap-2 overflow-x-auto border-t-2 border-zinc-700 shadow-inner scrollbar-hide overflow-y-hidden"
-              style={{ background: 'linear-gradient(180deg, #282018 0%, #1a1510 100%)' }}>
+      <footer className="flex-shrink-0 h-28 p-2 flex gap-2 overflow-x-auto border-t-2 border-zinc-700 shadow-inner scrollbar-hide overflow-y-hidden"
+              style={{ background: 'linear-gradient(180deg, #282018 0%, #1a1510 100%)', touchAction: 'pan-x' }}>
         <AnimatePresence mode="popLayout">
           {gameState.orders.map(order => {
             const maxTime  = order.isVIP ? 9600 : order.orderType === 'course' ? 35000 : 20000;
