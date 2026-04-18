@@ -31,11 +31,11 @@ function getComboReward(count: number): { bonus: number; freeze: number } {
 
 // ─── ランク取得 ────────────────────────────────────────────────────────
 function getScoreRank(score: number) {
-  if (score > 3000) return { label: 'LÉGENDAIRE',    ja: '伝説級', stars: '★★★★★', color: '#c8a000' };
-  if (score > 1500) return { label: 'EXCELLENT',     ja: '一流',   stars: '★★★★☆', color: '#d4af37' };
-  if (score > 800)  return { label: 'ACCEPTABLE',    ja: '普通',   stars: '★★★☆☆', color: '#888'    };
-  if (score > 300)  return { label: 'MÉDIOCRE',      ja: '凡庸',   stars: '★★☆☆☆', color: '#a06030' };
-  return                   { label: 'CATASTROPHIQUE', ja: '惨劇',  stars: '★☆☆☆☆', color: '#800000' };
+  if (score > 3000) return { label: 'LÉGENDAIRE',    rank: 'S', ja: '伝説級', stars: '★★★★★', color: '#c8a000' };
+  if (score > 1500) return { label: 'EXCELLENT',     rank: 'A', ja: '一流',   stars: '★★★★☆', color: '#d4af37' };
+  if (score > 800)  return { label: 'ACCEPTABLE',    rank: 'B', ja: '普通',   stars: '★★★☆☆', color: '#888'    };
+  if (score > 300)  return { label: 'MÉDIOCRE',      rank: 'C', ja: '凡庸',   stars: '★★☆☆☆', color: '#a06030' };
+  return                   { label: 'CATASTROPHIQUE', rank: 'D', ja: '惨劇',  stars: '★☆☆☆☆', color: '#800000' };
 }
 
 // ─── 油エリア生成（意味ある位置・閉じ込め防止付き） ────────────────────
@@ -386,6 +386,10 @@ export default function App() {
   const shakeControls = useAnimation();
   const [announcement,  setAnnouncement]  = useState<{ text: string; emoji: string; bg: string } | null>(null);
 
+  // ─── ベストスコア（localStorage） ──────────────────────────────
+  const [bestScore, setBestScore] = useState(() => parseInt(localStorage.getItem('bestScore') || '0'));
+  const [bestRank,  setBestRank]  = useState(() => localStorage.getItem('bestRank') || '');
+
   // ─── コンボ State ────────────────────────────────────────────────
   const [comboPopup,          setComboPopup]          = useState<ComboPopup | null>(null);
   const [timeFreezeRemaining, setTimeFreezeRemaining] = useState(0);
@@ -437,12 +441,15 @@ export default function App() {
   const currentStageIdxRef    = useRef(0);
   /** ステージ遷移アナウンスの前ステージ追跡 ref */
   const prevStageIdxRef       = useRef(0);
+  /** generateOrder 内でフェーズ判定に使う残り時間 ref */
+  const timeLeftRef           = useRef(GAME_DURATION);
 
   // ─── ステージ導出（timeLeft から純粋計算） ──────────────────────
   const currentStageIdx = useMemo(() => {
     const t = gameState.timeLeft;
     if (!isPlaying || gameState.isGameOver) return 0;
-    return t > 67 ? 0 : t > 44 ? 1 : t > 22 ? 2 : 3;
+    // Phase 1: t>60, Phase 2: t>30, Phase 3: t>15, Phase 4(地獄): t<=15
+    return t > 60 ? 0 : t > 30 ? 1 : t > 15 ? 2 : 3;
   }, [gameState.timeLeft, isPlaying, gameState.isGameOver]);
 
   const currentStage = STAGES[currentStageIdx];
@@ -456,6 +463,7 @@ export default function App() {
   useEffect(() => { isPlayingRef.current      = isPlaying;              }, [isPlaying]);
   useEffect(() => { isGameOverRef.current     = gameState.isGameOver;   }, [gameState.isGameOver]);
   useEffect(() => { currentStageIdxRef.current = currentStageIdx;       }, [currentStageIdx]);
+  useEffect(() => { timeLeftRef.current       = gameState.timeLeft;     }, [gameState.timeLeft]);
 
   // ─── ステージ遷移アナウンス ──────────────────────────────────────
   useEffect(() => {
@@ -823,14 +831,26 @@ export default function App() {
   // オーダー生成
   // ══════════════════════════════════════════════════════════════════
   const generateOrder = useCallback(() => {
-    const stage       = STAGES[currentStageIdxRef.current];
-    const isCourse    = Math.random() < 0.05;
-    const courseDishes = DISHES.filter(d => d.steps.length >= 6);
-    const normalDishes = DISHES.filter(d => d.steps.length < 6);
-    const dishPool    = isCourse ? courseDishes : normalDishes;
+    const stage    = STAGES[currentStageIdxRef.current];
+    const timeLeft = timeLeftRef.current;
+
+    // フェーズ別皿プール
+    const beginner     = DISHES.filter(d => d.steps.length === 3);
+    const intermediate = DISHES.filter(d => d.steps.length === 4);
+    const advanced     = DISHES.filter(d => d.steps.length >= 5);
+
+    let dishPool: typeof DISHES;
+    if (timeLeft > 60) {
+      dishPool = beginner;                                          // Phase 1: 初級のみ
+    } else if (timeLeft > 30) {
+      dishPool = [...beginner, ...intermediate];                    // Phase 2: 初級＋中級
+    } else {
+      dishPool = [...beginner, ...intermediate, ...advanced, ...advanced, ...advanced]; // Phase 3: 上級3倍重み
+    }
     if (dishPool.length === 0) return;
 
     const baseDish = dishPool[Math.floor(Math.random() * dishPool.length)];
+    const isCourse = baseDish.steps.length >= 6;
     const isVIP    = !isCourse && Math.random() < 0.1;
     const isRush   = !isCourse && !isVIP
       && baseDish.id === lastDishIdRef.current
@@ -848,15 +868,22 @@ export default function App() {
 
     const orderType: OrderType = isCourse ? 'course' : isRush ? 'rush' : isVIP ? 'vip' : 'normal';
 
+    // VIP/コースは patience の倍率で余裕を持たせる
+    const limitTime = isCourse
+      ? Math.round(stage.patience * 2.5)
+      : isVIP
+      ? Math.round(stage.patience * 1.5)
+      : stage.patience;
+
     setGameState(prev => {
-      // ステージの maxOrders を上限として使用
       if (prev.orders.length >= stage.maxOrders) return prev;
       const newOrder: Order = {
         id: Math.random().toString(36).substr(2, 9),
         dish,
         currentStepIndex: 0,
         startTime: Date.now(),
-        limitTime: isCourse ? 35000 : isVIP ? 9600 : stage.patience,
+        limitTime,
+        initialLimitTime: limitTime,
         isVIP,
         orderType,
       };
@@ -941,12 +968,14 @@ export default function App() {
 
       setGameState(prev => {
         if (prev.orders.length >= 8) return prev;
+        const regLimitTime = Math.round(STAGES[currentStageIdxRef.current].patience * 2);
         const newOrder: Order = {
           id: `reg-${Math.random().toString(36).substr(2, 9)}`,
           dish: { ...dish },
           currentStepIndex: 0,
           startTime: Date.now(),
-          limitTime: 25000,
+          limitTime: regLimitTime,
+          initialLimitTime: regLimitTime,
           isVIP: false,
           orderType: 'regular',
           regularName: customer.name,
@@ -988,12 +1017,15 @@ export default function App() {
     stoveBrokenRef.current            = false;
     prevStageIdxRef.current           = 0;
     currentStageIdxRef.current        = 0;
+    timeLeftRef.current               = GAME_DURATION;
     if (saturdayTroubleTimerRef.current) { clearTimeout(saturdayTroubleTimerRef.current); saturdayTroubleTimerRef.current = null; }
 
     setIsPlaying(true);
 
-    // 初回オーダー（Stage 1 patience で生成）
-    const firstDish = DISHES.filter(d => d.steps.length < 6)[Math.floor(Math.random() * DISHES.filter(d => d.steps.length < 6).length)];
+    // 初回オーダー（Phase 1: 初級皿のみ）
+    const beginnerDishes = DISHES.filter(d => d.steps.length === 3);
+    const firstDish = beginnerDishes[Math.floor(Math.random() * beginnerDishes.length)];
+    const firstLimit = STAGES[0].patience;
     setGameState(prev => ({
       ...prev,
       orders: [{
@@ -1001,7 +1033,8 @@ export default function App() {
         dish: firstDish,
         currentStepIndex: 0,
         startTime: Date.now(),
-        limitTime: STAGES[0].patience,
+        limitTime: firstLimit,
+        initialLimitTime: firstLimit,
       }],
     }));
 
@@ -1023,10 +1056,18 @@ export default function App() {
 
   const startGame = handleRestart;
 
-  // ── ゲームオーバー時レビュー生成（ローカル） ─────────────────────
+  // ── ゲームオーバー時レビュー生成 + ベストスコア保存 ──────────────
   useEffect(() => {
     if (gameState.isGameOver) {
       setReview(getResultComment(gameState.score));
+      const savedBest = parseInt(localStorage.getItem('bestScore') || '0');
+      if (gameState.score > savedBest) {
+        const rank = getScoreRank(gameState.score);
+        localStorage.setItem('bestScore', gameState.score.toString());
+        localStorage.setItem('bestRank', rank.rank);
+        setBestScore(gameState.score);
+        setBestRank(rank.rank);
+      }
     }
   }, [gameState.isGameOver, gameState.score]);
 
@@ -1426,17 +1467,18 @@ export default function App() {
               style={{ background: 'linear-gradient(180deg, #282018 0%, #1a1510 100%)', touchAction: 'pan-x' }}>
         <AnimatePresence mode="popLayout">
           {gameState.orders.map(order => {
-            const maxTime  = order.isVIP ? 9600 : order.orderType === 'course' ? 35000 : 20000;
-            const isDanger = order.limitTime < maxTime * 0.25;
+            const isPhase3 = gameState.timeLeft <= 30 && isPlaying && !gameState.isGameOver;
+            const initialTime = order.initialLimitTime ?? order.limitTime;
+            const isDanger = isPhase3 || order.limitTime < initialTime * 0.35;
             return (
               <motion.div
                 key={order.id} layout
                 initial={{ x: 100, opacity: 0 }}
-                animate={{ x: isDanger ? [0, -3, 3, 0] : 0, opacity: 1 }}
+                animate={{ x: isDanger ? [0, -4, 4, -2, 2, 0] : 0, opacity: 1 }}
                 exit={{ x: -200, opacity: 0, rotate: -10 }}
                 transition={{
                   type: 'spring', stiffness: 300, damping: 30,
-                  x: isDanger ? { repeat: Infinity, duration: 0.25 } : { type: 'spring' },
+                  x: isDanger ? { repeat: Infinity, duration: isPhase3 ? 0.12 : 0.25 } : { type: 'spring' },
                 }}
                 className={`h-full p-2 rounded-sm border-l-4 shadow-xl flex flex-col justify-between transition-colors duration-300
                   ${order.orderType === 'course' ? 'min-w-[170px]' : 'min-w-[140px]'}
@@ -1529,7 +1571,23 @@ export default function App() {
               className="max-w-md w-full rounded-lg bg-white p-6 text-center shadow-2xl border-4 border-[#d4af37] my-auto">
               <div className="text-5xl mb-4">👨‍🍳</div>
               <h2 className="text-3xl font-black text-[#800000] uppercase tracking-widest mb-1">Pocket Kitchen</h2>
-              <p className="text-xs text-[#d4af37] font-bold tracking-widest mb-4">ポケットキッチン</p>
+              <p className="text-xs text-[#d4af37] font-bold tracking-widest mb-3">ポケットキッチン</p>
+              {bestScore > 0 && (
+                <div className="flex justify-center gap-4 mb-3 px-4 py-2 rounded-lg border border-[#d4af37]/40"
+                     style={{ background: 'rgba(212,175,55,0.08)' }}>
+                  <div className="text-center">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-[#a07840]">BEST SCORE</p>
+                    <p className="text-lg font-black text-[#d4af37]">{bestScore.toLocaleString()}</p>
+                  </div>
+                  <div className="w-px bg-[#d4af37]/30" />
+                  <div className="text-center">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-[#a07840]">BEST RANK</p>
+                    <p className="text-2xl font-black" style={{ color: bestRank === 'S' ? '#c8a000' : bestRank === 'A' ? '#d4af37' : bestRank === 'B' ? '#888' : '#a06030' }}>
+                      {bestRank}
+                    </p>
+                  </div>
+                </div>
+              )}
               <p className="text-sm text-gray-600 mb-2 leading-relaxed italic">
                 シェフを操ってステーションを巡ろう！
               </p>

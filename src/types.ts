@@ -17,6 +17,7 @@ export interface Order {
   currentStepIndex: number;
   startTime: number;
   limitTime: number;
+  initialLimitTime: number;
   isVIP?: boolean;
   orderType?: OrderType;
   regularName?: string;
