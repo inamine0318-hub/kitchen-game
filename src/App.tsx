@@ -10,6 +10,7 @@ import {
 } from './constants';
 import { Order, StationType, GameState, Popup, OrderType } from './types';
 import { CheckCircle2, AlertTriangle, ChefHat } from 'lucide-react';
+import { useBGM } from './hooks/useBGM';
 
 // ─── 型定義 ────────────────────────────────────────────────────────────
 type TroubleType = 'OVEN_BROKEN' | 'OIL_SPILL' | 'STOVE_BROKEN';
@@ -375,6 +376,8 @@ export default function App() {
     isGameOver: false,
     timeLeft: GAME_DURATION,
   });
+  const bgm = useBGM();
+
   const [isPlaying,     setIsPlaying]     = useState(false);
   const [isChefMoving,  setIsChefMoving]  = useState(false);
   const [scoreKey,      setScoreKey]      = useState(0);
@@ -1027,6 +1030,7 @@ export default function App() {
     if (saturdayTroubleTimerRef.current) { clearTimeout(saturdayTroubleTimerRef.current); saturdayTroubleTimerRef.current = null; }
 
     setIsPlaying(true);
+    bgm.start(); // ユーザー操作直後なので autoplay 制限回避済み
 
     // 初回オーダー（Phase 1: 初級皿のみ）
     const beginnerDishes = DISHES.filter(d => d.steps.length === 3);
@@ -1062,6 +1066,16 @@ export default function App() {
 
   const startGame = handleRestart;
 
+  // ── ゲームオーバー時 BGM 停止 ────────────────────────────────────
+  useEffect(() => {
+    if (gameState.isGameOver) bgm.stop();
+  }, [gameState.isGameOver]); // eslint-disable-line
+
+  // ── フェーズ切替時 BGM フェーズ更新 ──────────────────────────────
+  useEffect(() => {
+    if (isPlaying && !gameState.isGameOver) bgm.setPhase(currentStageIdx);
+  }, [currentStageIdx, isPlaying, gameState.isGameOver]); // eslint-disable-line
+
   // ── ゲームオーバー時レビュー生成 + ベストスコア保存 ──────────────
   useEffect(() => {
     if (gameState.isGameOver) {
@@ -1088,8 +1102,9 @@ export default function App() {
       if (movingTimerRef.current)        clearTimeout(movingTimerRef.current);
       if (saturdayTroubleTimerRef.current) clearTimeout(saturdayTroubleTimerRef.current);
       popupTimersRef.current.forEach(clearTimeout);
+      bgm.stop();
     };
-  }, []);
+  }, []); // eslint-disable-line
 
   // ══════════════════════════════════════════════════════════════════
   // レンダリング
