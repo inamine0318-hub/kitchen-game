@@ -1103,8 +1103,24 @@ export default function App() {
   const isFrozen = timeFreezeRemaining > 0;
 
   return (
-    <div className="w-full flex flex-col overflow-hidden font-sans"
-         style={{ height: '100dvh', background: 'linear-gradient(180deg, #0e0b08 0%, #1a130e 100%)' }}>
+    <div className="relative w-full flex flex-col overflow-hidden font-sans"
+         style={{ height: '100dvh', background: '#0d0d0d' }}>
+
+      {/* ── リネンテクスチャ（全画面 / 超低コントラスト） ── */}
+      <div className="fixed inset-0 pointer-events-none" style={{
+        backgroundImage: [
+          'repeating-linear-gradient(45deg,  rgba(255,255,255,0.013) 0px, rgba(255,255,255,0.013) 1px, transparent 1px, transparent 10px)',
+          'repeating-linear-gradient(-45deg, rgba(255,255,255,0.013) 0px, rgba(255,255,255,0.013) 1px, transparent 1px, transparent 10px)',
+        ].join(', '),
+        backgroundSize: '10px 10px',
+        zIndex: 0,
+      }}/>
+
+      {/* ── 四隅ゴールドブラケット（プレイエリア境界） ── */}
+      <div className="fixed top-2 left-2 w-7 h-7 pointer-events-none" style={{ borderTop: '1px solid rgba(212,175,55,0.55)', borderLeft: '1px solid rgba(212,175,55,0.55)', zIndex: 48 }}/>
+      <div className="fixed top-2 right-2 w-7 h-7 pointer-events-none" style={{ borderTop: '1px solid rgba(212,175,55,0.55)', borderRight: '1px solid rgba(212,175,55,0.55)', zIndex: 48 }}/>
+      <div className="fixed bottom-2 left-2 w-7 h-7 pointer-events-none" style={{ borderBottom: '1px solid rgba(212,175,55,0.55)', borderLeft: '1px solid rgba(212,175,55,0.55)', zIndex: 48 }}/>
+      <div className="fixed bottom-2 right-2 w-7 h-7 pointer-events-none" style={{ borderBottom: '1px solid rgba(212,175,55,0.55)', borderRight: '1px solid rgba(212,175,55,0.55)', zIndex: 48 }}/>
 
       {/* ── TIME FREEZE オーバーレイ ── */}
       <AnimatePresence>
@@ -1255,7 +1271,12 @@ export default function App() {
       {/* ── キッチンフィールド ── */}
       <main
         className="relative flex-1 flex flex-col items-center justify-center overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at 50% 30%, #1a1208 0%, #0a0806 100%)', touchAction: 'none' }}
+        style={{
+          background: 'radial-gradient(ellipse at 50% 35%, #1c1510 0%, #080604 100%)',
+          borderTop:    '1px solid rgba(212,175,55,0.28)',
+          borderBottom: '1px solid rgba(212,175,55,0.28)',
+          touchAction: 'none',
+        }}
         onPointerDown={handleKitchenPointerDown}
         onPointerUp={handleKitchenPointerUp}
       >
@@ -1263,6 +1284,67 @@ export default function App() {
         {/* スポットライト */}
         <div className="absolute inset-0 pointer-events-none"
              style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(255,200,80,0.08) 0%, transparent 60%)' }} />
+
+        {/* ── 左サイド：調理器具シルエット ── */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none z-[1]" style={{ opacity: 0.13 }}>
+          <svg viewBox="0 0 80 280" width="72" height="252" xmlns="http://www.w3.org/2000/svg" fill="white">
+            {/* 上段吊りレール */}
+            <rect x="2" y="18" width="76" height="3.5" rx="1.5"/>
+            {/* フック1 → 大鍋 */}
+            <path d="M20 21.5 Q20 30 19 35" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+            <ellipse cx="19" cy="51" rx="17" ry="5"/>
+            <path d="M2 51 L2 85 Q2 90 19 90 Q36 90 36 85 L36 51" fill="white"/>
+            <ellipse cx="19" cy="87" rx="17" ry="4"/>
+            <rect x="-5" y="48" width="9" height="4" rx="2"/>
+            <rect x="31" y="48" width="9" height="4" rx="2"/>
+            {/* フック2 → お玉 */}
+            <path d="M50 21.5 Q50 30 49 35" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+            <circle cx="49" cy="50" r="12"/>
+            <rect x="47" y="61" width="4.5" height="55" rx="2.25"/>
+            {/* フック3 → フライパン */}
+            <path d="M70 21.5 Q70 30 69 35" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+            <ellipse cx="69" cy="50" rx="13" ry="11"/>
+            <rect x="74" y="47" width="18" height="5" rx="2.5"/>
+            {/* 下段吊りレール */}
+            <rect x="2" y="155" width="76" height="3" rx="1.5"/>
+            {/* フック4 → 鍋蓋 */}
+            <path d="M25 158 Q25 165 24 170" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            <ellipse cx="24" cy="178" rx="20" ry="6"/>
+            <rect x="19" y="172" width="10" height="8" rx="4"/>
+            {/* フック5 → 泡立て器 */}
+            <path d="M60 158 Q60 165 59 170" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            <ellipse cx="59" cy="177" rx="10" ry="9"/>
+            <rect x="57" y="185" width="4" height="50" rx="2"/>
+            <path d="M52 179 Q59 191 66 179" stroke="white" strokeWidth="1.5" fill="none"/>
+            <path d="M52 185 Q59 197 66 185" stroke="white" strokeWidth="1.5" fill="none"/>
+            <path d="M52 191 Q59 203 66 191" stroke="white" strokeWidth="1.5" fill="none"/>
+          </svg>
+        </div>
+
+        {/* ── 右サイド：ディナープレートシルエット ── */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none z-[1]" style={{ opacity: 0.13 }}>
+          <svg viewBox="0 0 80 280" width="72" height="252" xmlns="http://www.w3.org/2000/svg" fill="white">
+            {/* 5枚積みプレート（下から上へ） */}
+            {/* Plate 5 - bottom */}
+            <ellipse cx="40" cy="248" rx="38" ry="9"/>
+            <path d="M2 248 Q2 258 40 261 Q78 258 78 248 Z" fill="white"/>
+            {/* Plate 4 */}
+            <ellipse cx="40" cy="216" rx="38" ry="9"/>
+            <path d="M2 216 Q2 226 40 229 Q78 226 78 216 Z" fill="white"/>
+            {/* Plate 3 */}
+            <ellipse cx="40" cy="184" rx="38" ry="9"/>
+            <path d="M2 184 Q2 194 40 197 Q78 194 78 184 Z" fill="white"/>
+            {/* Plate 2 */}
+            <ellipse cx="40" cy="152" rx="38" ry="9"/>
+            <path d="M2 152 Q2 162 40 165 Q78 162 78 152 Z" fill="white"/>
+            {/* Plate 1 - top */}
+            <ellipse cx="40" cy="120" rx="38" ry="9"/>
+            <path d="M2 120 Q2 130 40 133 Q78 130 78 120 Z" fill="white"/>
+            {/* 台（table surface） */}
+            <rect x="0" y="259" width="80" height="4.5" rx="2"/>
+            <rect x="6" y="263" width="68" height="3" rx="1.5"/>
+          </svg>
+        </div>
 
         {/* ──────── キッチン本体 ──────── */}
         <motion.div
@@ -1275,7 +1357,7 @@ export default function App() {
             overflow: 'visible',
             border: '3px solid #909898',
             outline: '3px solid #505858',
-            boxShadow: '0 0 20px rgba(160,200,220,0.15), 0 20px 60px rgba(0,0,0,0.8)',
+            boxShadow: '0 0 20px rgba(160,200,220,0.15), 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(212,175,55,0.35), 0 0 32px rgba(212,175,55,0.07)',
             transform: 'translateZ(0)',
           }}
         >
