@@ -6,13 +6,13 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Chef } from './components/Chef';
 import {
-  DISHES, STATIONS, GAME_DURATION, ORDER_INTERVAL, STATION_ICONS, REGULAR_CUSTOMERS,
+  DISHES, STATIONS, GAME_DURATION, STATION_ICONS, REGULAR_CUSTOMERS, STAGES,
 } from './constants';
 import { Order, StationType, GameState, Popup, OrderType } from './types';
 import { CheckCircle2, AlertTriangle, ChefHat } from 'lucide-react';
 
 // ─── 型定義 ────────────────────────────────────────────────────────────
-type TroubleType = 'OVEN_BROKEN' | 'OIL_SPILL';
+type TroubleType = 'OVEN_BROKEN' | 'OIL_SPILL' | 'STOVE_BROKEN';
 
 interface ComboPopup {
   count: number;
@@ -160,9 +160,10 @@ function getResultComment(score: number): string {
 interface KitchenStationsProps {
   chefPos: { x: number; y: number };
   ovenBroken: boolean;
+  stoveBroken: boolean;
 }
 
-const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroken }: KitchenStationsProps) {
+const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroken, stoveBroken }: KitchenStationsProps) {
   const FRONT_H = 7;
   const PAD     = 3;
 
@@ -179,7 +180,8 @@ const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroke
         const isActive =
           Math.round(chefPos.x) === Math.round(pos.x) &&
           Math.round(chefPos.y) === Math.round(pos.y);
-        const isOvenError = type === 'OVEN' && ovenBroken;
+        const isOvenError  = type === 'OVEN'  && ovenBroken;
+        const isStoveError = type === 'STOVE' && stoveBroken;
 
         const stationDefs: Record<string, StationDef> = {
           PREP: {
@@ -195,25 +197,34 @@ const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroke
             ),
           },
           STOVE: {
-            top: 'linear-gradient(170deg, #686868 0%, #383838 100%)',
-            front: '#181818', border: '#080808', highlight: 'rgba(150,150,150,0.4)',
-            label: 'コンロ', glow: 'rgba(255,120,0,0.55)', zLayer: 5,
+            top: isStoveError
+              ? 'linear-gradient(170deg, #3a1010 0%, #1a0808 100%)'
+              : 'linear-gradient(170deg, #686868 0%, #383838 100%)',
+            front: '#181818', border: isStoveError ? '#ff3030' : '#080808',
+            highlight: isStoveError ? 'rgba(255,80,80,0.5)' : 'rgba(150,150,150,0.4)',
+            label: isStoveError ? '！STOVE ERROR' : 'コンロ',
+            glow: isStoveError ? 'rgba(255,50,50,0.7)' : 'rgba(255,120,0,0.55)', zLayer: 5,
             content: (
               <>
                 <div className="absolute top-[8px] left-0 right-0 h-px pointer-events-none" style={{ background: 'rgba(255,255,255,0.15)' }} />
                 <div className="relative z-10 flex items-center justify-center" style={{ width: 34, height: 34 }}>
-                  <div className="absolute rounded-full border-[2.5px]" style={{ width: 34, height: 34, borderColor: '#aaa' }} />
-                  <div className="absolute rounded-full border-2"      style={{ width: 22, height: 22, borderColor: '#999' }} />
-                  <div className="absolute rounded-full border"        style={{ width: 12, height: 12, borderColor: '#888' }} />
-                  <div className="absolute rounded-full"               style={{ width: 5,  height: 5,  background: '#777' }} />
+                  <div className="absolute rounded-full border-[2.5px]" style={{ width: 34, height: 34, borderColor: isStoveError ? '#ff4040' : '#aaa' }} />
+                  <div className="absolute rounded-full border-2"      style={{ width: 22, height: 22, borderColor: isStoveError ? '#cc2020' : '#999' }} />
+                  <div className="absolute rounded-full border"        style={{ width: 12, height: 12, borderColor: isStoveError ? '#aa1010' : '#888' }} />
+                  <div className="absolute rounded-full"               style={{ width: 5,  height: 5,  background: isStoveError ? '#ff3030' : '#777' }} />
                 </div>
-                {isActive && (
+                {isStoveError ? (
+                  <motion.span style={{ fontSize: 18, position: 'absolute' }}
+                    animate={{ opacity: [1, 0.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 0.4 }}
+                  >⚠️</motion.span>
+                ) : isActive ? (
                   <motion.div className="absolute pointer-events-none rounded-full"
                     style={{ width: 32, height: 32, background: 'radial-gradient(circle, rgba(255,200,0,1) 0%, rgba(255,80,0,0.8) 40%, transparent 70%)' }}
                     animate={{ scale: [0.85, 1.15, 0.85], opacity: [0.8, 1, 0.8] }}
                     transition={{ repeat: Infinity, duration: 0.3 }}
                   />
-                )}
+                ) : null}
               </>
             ),
           },
@@ -314,7 +325,7 @@ const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroke
           <div key={type} className="absolute pointer-events-none"
                style={{ left: `${pos.x * 20}%`, top: `${pos.y * 20}%`, width: '20%', height: '20%', padding: `${PAD}px ${PAD}px ${PAD + FRONT_H}px ${PAD}px`, zIndex: def.zLayer ?? 5 }}>
             <motion.div
-              animate={isActive && !isOvenError ? { scale: 1.07, y: -2 } : { scale: 1, y: 0 }}
+              animate={isActive && !isOvenError && !isStoveError ? { scale: 1.07, y: -2 } : { scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               style={{
                 width: '100%', height: '100%',
@@ -325,7 +336,7 @@ const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroke
                 boxShadow: [
                   `0 ${FRONT_H}px 0 0 ${def.front}`,
                   `0 ${FRONT_H + 4}px 0 0 rgba(0,0,0,0.5)`,
-                  isOvenError
+                  (isOvenError || isStoveError)
                     ? `0 0 0 2px rgba(255,50,50,0.7), 0 0 20px rgba(255,50,50,0.5)`
                     : isActive ? `0 0 0 2px ${def.glow}, 0 0 18px ${def.glow}` : '0 3px 10px rgba(0,0,0,0.7)',
                 ].join(', '),
@@ -336,10 +347,10 @@ const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroke
             >
               {def.content}
               <div className="absolute bottom-[3px] px-[6px] py-[2px] rounded"
-                   style={{ background: isOvenError ? 'rgba(150,0,0,0.9)' : 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.1)', zIndex: 20 }}>
-                <span style={{ fontSize: '0.38rem', color: isOvenError ? '#ff8080' : '#e8e0d0', fontWeight: 800, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{def.label}</span>
+                   style={{ background: (isOvenError || isStoveError) ? 'rgba(150,0,0,0.9)' : 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.1)', zIndex: 20 }}>
+                <span style={{ fontSize: '0.38rem', color: (isOvenError || isStoveError) ? '#ff8080' : '#e8e0d0', fontWeight: 800, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{def.label}</span>
               </div>
-              {isActive && !isOvenError && (
+              {isActive && !isOvenError && !isStoveError && (
                 <motion.div className="absolute inset-0 pointer-events-none"
                   style={{ background: `radial-gradient(circle, ${def.glow} 0%, transparent 70%)` }}
                   animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.45 }}
@@ -384,6 +395,7 @@ export default function App() {
   const [troubleRemaining, setTroubleRemaining] = useState(0);
   const [oilTiles,        setOilTiles]        = useState<{ x: number; y: number }[]>([]);
   const [ovenBroken,      setOvenBroken]      = useState(false);
+  const [stoveBroken,     setStoveBroken]     = useState(false);
 
   // ─── Refs（インターバル内で最新値を参照するため） ──────────────
   /** スワイプ開始座標 */
@@ -413,18 +425,48 @@ export default function App() {
   const activeTroubleRef      = useRef<TroubleType | null>(null);
   /** setInterval 内で ovenBroken を参照するための ref */
   const ovenBrokenRef         = useRef(false);
+  /** setInterval 内で stoveBroken を参照するための ref */
+  const stoveBrokenRef        = useRef(false);
   /** 2連続クレームカウント（ref で管理してインターバル間を通じて保持） */
   const consecutiveComplaintsRef = useRef(0);
   /** triggerKitchenTrouble 内でシェフ位置を参照するための ref */
-  const chefPosRef = useRef({ x: 2, y: 2 });
+  const chefPosRef            = useRef({ x: 2, y: 2 });
+  /** 土曜限定トラブルのスケジューラ ref */
+  const saturdayTroubleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  /** 現在ステージを useEffect / callback から stale closure なしに参照するための ref */
+  const currentStageIdxRef    = useRef(0);
+  /** ステージ遷移アナウンスの前ステージ追跡 ref */
+  const prevStageIdxRef       = useRef(0);
+
+  // ─── ステージ導出（timeLeft から純粋計算） ──────────────────────
+  const currentStageIdx = useMemo(() => {
+    const t = gameState.timeLeft;
+    if (!isPlaying || gameState.isGameOver) return 0;
+    return t > 67 ? 0 : t > 44 ? 1 : t > 22 ? 2 : 3;
+  }, [gameState.timeLeft, isPlaying, gameState.isGameOver]);
+
+  const currentStage = STAGES[currentStageIdx];
 
   // ─── State → Ref 同期 ────────────────────────────────────────────
   useEffect(() => { activeTroubleRef.current  = activeTrouble;          }, [activeTrouble]);
   useEffect(() => { ovenBrokenRef.current     = ovenBroken;             }, [ovenBroken]);
+  useEffect(() => { stoveBrokenRef.current    = stoveBroken;            }, [stoveBroken]);
   useEffect(() => { chefPosRef.current        = gameState.chefPos;      }, [gameState.chefPos]);
   useEffect(() => { oilTilesRef.current       = oilTiles;               }, [oilTiles]);
   useEffect(() => { isPlayingRef.current      = isPlaying;              }, [isPlaying]);
   useEffect(() => { isGameOverRef.current     = gameState.isGameOver;   }, [gameState.isGameOver]);
+  useEffect(() => { currentStageIdxRef.current = currentStageIdx;       }, [currentStageIdx]);
+
+  // ─── ステージ遷移アナウンス ──────────────────────────────────────
+  useEffect(() => {
+    if (!isPlaying || gameState.isGameOver) { prevStageIdxRef.current = 0; return; }
+    if (currentStageIdx > 0 && currentStageIdx !== prevStageIdxRef.current) {
+      showAnnouncement(currentStage.announcement, currentStage.emoji, currentStage.announceBg);
+    }
+    prevStageIdxRef.current = currentStageIdx;
+  // showAnnouncement は stable ref なので exhaustive-deps から除外
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStageIdx, isPlaying, gameState.isGameOver]);
 
   // ══════════════════════════════════════════════════════════════════
   // アナウンスバナー表示
@@ -540,11 +582,12 @@ export default function App() {
     if (!activeTrouble) return;
 
     if (troubleRemaining <= 0) {
-      // トラブル終了
       setActiveTrouble(null);
       activeTroubleRef.current = null;
       setOvenBroken(false);
       ovenBrokenRef.current = false;
+      setStoveBroken(false);
+      stoveBrokenRef.current = false;
       setOilTiles([]);
       return;
     }
@@ -552,6 +595,71 @@ export default function App() {
     const id = setTimeout(() => setTroubleRemaining(t => t - 1), 1000);
     return () => clearTimeout(id);
   }, [troubleRemaining, activeTrouble]);
+
+  // ══════════════════════════════════════════════════════════════════
+  // ③ 土曜限定：理不尽トラブル（Stage 3 Special）
+  // ══════════════════════════════════════════════════════════════════
+
+  /** 土曜日限定トラブルを強制発動（クレーム条件を無視） */
+  const triggerSaturdayTrouble = useCallback(() => {
+    if (Math.random() < 0.5) {
+      // ① 機材故障: OVEN または STOVE が 10 秒間使用不可
+      const breakOven = Math.random() < 0.5;
+      if (breakOven) {
+        setOvenBroken(true);
+        ovenBrokenRef.current = true;
+        setActiveTrouble('OVEN_BROKEN');
+        activeTroubleRef.current = 'OVEN_BROKEN';
+      } else {
+        setStoveBroken(true);
+        stoveBrokenRef.current = true;
+        setActiveTrouble('STOVE_BROKEN');
+        activeTroubleRef.current = 'STOVE_BROKEN';
+      }
+      setTroubleRemaining(10);
+      showAnnouncement(
+        breakOven ? '🔥 土曜緊急！オーブン故障！10秒使用不可！' : '🔥 土曜緊急！コンロ故障！10秒使用不可！',
+        '🔥', '#5a0000',
+      );
+    } else {
+      // ② いきなり激怒: 全オーダーの待ち時間を 50% 減少
+      setGameState(prev => ({
+        ...prev,
+        orders: prev.orders.map(o => ({ ...o, limitTime: Math.max(1000, Math.floor(o.limitTime * 0.5)) })),
+      }));
+      showAnnouncement('😡 激怒！全ての客の待ち時間が半分に！', '😡', '#5a2000');
+    }
+  }, [showAnnouncement]);
+
+  /** 土曜限定トラブルスケジューラ（Stage 3 中のみ動作） */
+  useEffect(() => {
+    if (!isPlaying || gameState.isGameOver || currentStageIdx !== 2) {
+      if (saturdayTroubleTimerRef.current) {
+        clearTimeout(saturdayTroubleTimerRef.current);
+        saturdayTroubleTimerRef.current = null;
+      }
+      return;
+    }
+
+    const schedule = () => {
+      const delay = 30000 + Math.random() * 15000; // 30〜45 秒のランダム間隔
+      saturdayTroubleTimerRef.current = setTimeout(() => {
+        if (isPlayingRef.current && !isGameOverRef.current && currentStageIdxRef.current === 2) {
+          triggerSaturdayTrouble();
+          schedule(); // 次のトラブルを予約
+        }
+      }, delay);
+    };
+
+    schedule();
+
+    return () => {
+      if (saturdayTroubleTimerRef.current) {
+        clearTimeout(saturdayTroubleTimerRef.current);
+        saturdayTroubleTimerRef.current = null;
+      }
+    };
+  }, [isPlaying, gameState.isGameOver, currentStageIdx, triggerSaturdayTrouble]);
 
   // ══════════════════════════════════════════════════════════════════
   // シェフ移動
@@ -638,8 +746,10 @@ export default function App() {
       ([, pos]) => Math.round(pos.x) === x && Math.round(pos.y) === y
     );
     const rawStation = stationEntry ? (stationEntry[0] as StationType) : 'NONE';
-    // オーブン故障中はオーブンを「なし」として扱う
-    const currentStation: StationType = (rawStation === 'OVEN' && ovenBrokenRef.current) ? 'NONE' : rawStation;
+    const currentStation: StationType =
+      (rawStation === 'OVEN'   && ovenBrokenRef.current)  ? 'NONE' :
+      (rawStation === 'STOVE'  && stoveBrokenRef.current) ? 'NONE' :
+      rawStation;
 
     if (currentStation === 'NONE') return;
 
@@ -713,6 +823,7 @@ export default function App() {
   // オーダー生成
   // ══════════════════════════════════════════════════════════════════
   const generateOrder = useCallback(() => {
+    const stage       = STAGES[currentStageIdxRef.current];
     const isCourse    = Math.random() < 0.05;
     const courseDishes = DISHES.filter(d => d.steps.length >= 6);
     const normalDishes = DISHES.filter(d => d.steps.length < 6);
@@ -731,20 +842,21 @@ export default function App() {
     if (isVIP)  dish.points *= 3;
     if (isRush) dish.points  = Math.floor(dish.points * 1.5);
 
-    if (isCourse)   showAnnouncement('コースメニューのご注文！全ステーションを制覇せよ！', '👑', '#6a5000');
+    if (isCourse)    showAnnouncement('コースメニューのご注文！全ステーションを制覇せよ！', '👑', '#6a5000');
     else if (isRush) showAnnouncement(`ラッシュ！「${dish.name}」が連続注文！1.5倍ボーナス！`, '🔥', '#8a2800');
     else if (isVIP)  showAnnouncement('VIPのお客様がご来店！', '⭐', '#6a4000');
 
     const orderType: OrderType = isCourse ? 'course' : isRush ? 'rush' : isVIP ? 'vip' : 'normal';
 
     setGameState(prev => {
-      if (prev.orders.length >= 8) return prev;
+      // ステージの maxOrders を上限として使用
+      if (prev.orders.length >= stage.maxOrders) return prev;
       const newOrder: Order = {
         id: Math.random().toString(36).substr(2, 9),
         dish,
         currentStepIndex: 0,
         startTime: Date.now(),
-        limitTime: isCourse ? 35000 : isVIP ? 9600 : 20000,
+        limitTime: isCourse ? 35000 : isVIP ? 9600 : stage.patience,
         isVIP,
         orderType,
       };
@@ -776,11 +888,14 @@ export default function App() {
         if (expiredCount > 0) {
           addPopup(2, 2, `クレーム！ -${penalty}`);
 
-          // 連続クレームカウント → 2回以上でトラブル発動
+          // 連続クレームカウント → Stage 3 以外で 2 回以上でトラブル発動
           consecutiveComplaintsRef.current += expiredCount;
-          if (consecutiveComplaintsRef.current >= 2 && !activeTroubleRef.current) {
+          if (
+            consecutiveComplaintsRef.current >= 2 &&
+            !activeTroubleRef.current &&
+            currentStageIdxRef.current !== 2  // Stage 3 は土曜専用トラブルのみ
+          ) {
             consecutiveComplaintsRef.current = 0;
-            // setState の外でトラブルを起こすため setTimeout で非同期化
             setTimeout(() => triggerKitchenTrouble(), 0);
           }
 
@@ -793,12 +908,25 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isPlaying, gameState.isGameOver, addPopup, triggerKitchenTrouble]);
 
-  // ── オーダー不足時の自動補充 ────────────────────────────────────
+  // ── オーダー不足時の自動補充（ステージ maxOrders 準拠） ──────────
   useEffect(() => {
-    if (isPlaying && !gameState.isGameOver && gameState.orders.length < 4) {
+    if (isPlaying && !gameState.isGameOver && gameState.orders.length < currentStage.maxOrders) {
       generateOrder();
     }
-  }, [gameState.orders.length, isPlaying, gameState.isGameOver, generateOrder]);
+  }, [gameState.orders.length, isPlaying, gameState.isGameOver, generateOrder, currentStage.maxOrders]);
+
+  // ── ステージ spawnRate に応じてオーダー間隔を動的に再設定 ─────────
+  useEffect(() => {
+    if (!isPlaying || gameState.isGameOver) {
+      if (orderTimerRef.current) { clearInterval(orderTimerRef.current); orderTimerRef.current = null; }
+      return;
+    }
+    if (orderTimerRef.current) clearInterval(orderTimerRef.current);
+    orderTimerRef.current = setInterval(generateOrder, currentStage.spawnRate);
+    return () => {
+      if (orderTimerRef.current) { clearInterval(orderTimerRef.current); orderTimerRef.current = null; }
+    };
+  }, [isPlaying, gameState.isGameOver, currentStage.spawnRate, generateOrder]);
 
   // ── 常連客定期来店（28秒ごと） ───────────────────────────────────
   useEffect(() => {
@@ -848,6 +976,7 @@ export default function App() {
     setTroubleRemaining(0);
     setOilTiles([]);
     setOvenBroken(false);
+    setStoveBroken(false);
     // Ref リセット
     lastDishIdRef.current              = '';
     isTimeFrozenRef.current            = false;
@@ -855,9 +984,15 @@ export default function App() {
     ovenBrokenRef.current              = false;
     consecutiveComplaintsRef.current   = 0;
 
+    // 新規追加 Ref のリセット
+    stoveBrokenRef.current            = false;
+    prevStageIdxRef.current           = 0;
+    currentStageIdxRef.current        = 0;
+    if (saturdayTroubleTimerRef.current) { clearTimeout(saturdayTroubleTimerRef.current); saturdayTroubleTimerRef.current = null; }
+
     setIsPlaying(true);
 
-    // 初回オーダー
+    // 初回オーダー（Stage 1 patience で生成）
     const firstDish = DISHES.filter(d => d.steps.length < 6)[Math.floor(Math.random() * DISHES.filter(d => d.steps.length < 6).length)];
     setGameState(prev => ({
       ...prev,
@@ -866,14 +1001,14 @@ export default function App() {
         dish: firstDish,
         currentStepIndex: 0,
         startTime: Date.now(),
-        limitTime: 20000,
+        limitTime: STAGES[0].patience,
       }],
     }));
 
     // ゲームタイマー（isTimeFrozenRef が true のときはスキップ）
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      if (isTimeFrozenRef.current) return; // ← 時間停止中はスキップ
+      if (isTimeFrozenRef.current) return;
       setGameState(prev => {
         if (prev.timeLeft <= 1) {
           if (timerRef.current)      clearInterval(timerRef.current);
@@ -883,9 +1018,7 @@ export default function App() {
         return { ...prev, timeLeft: prev.timeLeft - 1 };
       });
     }, 1000);
-
-    if (orderTimerRef.current) clearInterval(orderTimerRef.current);
-    orderTimerRef.current = setInterval(generateOrder, ORDER_INTERVAL);
+    // orderTimer は currentStage.spawnRate を監視する useEffect が管理するため、ここでは設定しない
   };
 
   const startGame = handleRestart;
@@ -906,6 +1039,7 @@ export default function App() {
       if (announcementTimeoutRef.current) clearTimeout(announcementTimeoutRef.current);
       if (comboTimeoutRef.current)       clearTimeout(comboTimeoutRef.current);
       if (movingTimerRef.current)        clearTimeout(movingTimerRef.current);
+      if (saturdayTroubleTimerRef.current) clearTimeout(saturdayTroubleTimerRef.current);
     };
   }, []);
 
@@ -1013,6 +1147,15 @@ export default function App() {
           <span className="text-[7px] font-bold tracking-widest" style={{ color: '#a07840' }}>
             ポケットキッチン
           </span>
+          {isPlaying && !gameState.isGameOver && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <span style={{ fontSize: '0.6rem' }}>{currentStage.emoji}</span>
+              <span className="text-[8px] font-black tracking-wider"
+                    style={{ color: currentStageIdx === 2 ? '#ff6060' : currentStageIdx === 1 ? '#ffc060' : '#80c080' }}>
+                STAGE {currentStage.stage} {currentStage.name}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 items-center">
@@ -1022,9 +1165,9 @@ export default function App() {
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ repeat: Infinity, duration: 0.5 }}
               className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-black text-white"
-              style={{ background: activeTrouble === 'OVEN_BROKEN' ? '#8a0000' : '#6a4000' }}
+              style={{ background: (activeTrouble === 'OVEN_BROKEN' || activeTrouble === 'STOVE_BROKEN') ? '#8a0000' : '#6a4000' }}
             >
-              {activeTrouble === 'OVEN_BROKEN' ? '⚠️ OVEN' : '🛢️ OIL'} {troubleRemaining}s
+              {activeTrouble === 'OVEN_BROKEN' ? '⚠️ OVEN' : activeTrouble === 'STOVE_BROKEN' ? '⚠️ STOVE' : '🛢️ OIL'} {troubleRemaining}s
             </motion.div>
           )}
           {/* TIME FREEZE バッジ（ヘッダー内） */}
@@ -1200,7 +1343,7 @@ export default function App() {
           </AnimatePresence>
 
           {/* ═══════ 調理ステーション（memo化コンポーネント） ═══════ */}
-          <KitchenStations chefPos={gameState.chefPos} ovenBroken={ovenBroken} />
+          <KitchenStations chefPos={gameState.chefPos} ovenBroken={ovenBroken} stoveBroken={stoveBroken} />
 
           {/* ── フィールドポップアップ ── */}
           <AnimatePresence>

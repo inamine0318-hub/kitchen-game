@@ -1,5 +1,40 @@
 import { Dish, StationType, Position } from './types';
 
+// ─── ステージ設定 ─────────────────────────────────────────────────────────
+export interface StageConfig {
+  stage: number;
+  name: string;
+  emoji: string;
+  spawnRate: number;    // 注文スポーン間隔 (ms)
+  patience: number;     // 客の待ち時間上限 (ms)
+  maxOrders: number;    // 同時注文数上限
+  announceBg: string;
+  announcement: string;
+}
+
+export const STAGES: StageConfig[] = [
+  {
+    stage: 1, name: '平日', emoji: '📅',
+    spawnRate: 8000, patience: 25000, maxOrders: 1,
+    announceBg: '#1a3a1a', announcement: '平日営業スタート！落ち着いてこなせ',
+  },
+  {
+    stage: 2, name: '金曜', emoji: '🌙',
+    spawnRate: 6000, patience: 20000, maxOrders: 2,
+    announceBg: '#3a2800', announcement: '金曜！客が増えてきたぞ！',
+  },
+  {
+    stage: 3, name: '土曜', emoji: '🔥',
+    spawnRate: 3500, patience: 15000, maxOrders: 3,
+    announceBg: '#5a0000', announcement: '土曜地獄！休む暇はない！',
+  },
+  {
+    stage: 4, name: '日曜', emoji: '🌅',
+    spawnRate: 5000, patience: 18000, maxOrders: 2,
+    announceBg: '#1a1a3a', announcement: '日曜！最後の踏ん張りだ！',
+  },
+];
+
 export const DISHES: Dish[] = [
   // ─── シンプル（2〜3ステップ） ───
   {
