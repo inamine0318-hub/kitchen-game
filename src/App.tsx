@@ -11,6 +11,7 @@ import {
 import { Order, StationType, GameState, Popup, OrderType } from './types';
 import { CheckCircle2, AlertTriangle, ChefHat } from 'lucide-react';
 import { useBGM } from './hooks/useBGM';
+import { useSE }  from './hooks/useSE';
 
 // ─── 型定義 ────────────────────────────────────────────────────────────
 type TroubleType = 'OVEN_BROKEN' | 'OIL_SPILL' | 'STOVE_BROKEN';
@@ -352,10 +353,19 @@ const KitchenStations = React.memo(function KitchenStations({ chefPos, ovenBroke
                 <span style={{ fontSize: '0.38rem', color: (isOvenError || isStoveError) ? '#ff8080' : '#e8e0d0', fontWeight: 800, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{def.label}</span>
               </div>
               {isActive && !isOvenError && !isStoveError && (
-                <motion.div className="absolute inset-0 pointer-events-none"
-                  style={{ background: `radial-gradient(circle, ${def.glow} 0%, transparent 70%)` }}
-                  animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.45 }}
-                />
+                <>
+                  {/* 継続グロー */}
+                  <motion.div className="absolute inset-0 pointer-events-none"
+                    style={{ background: `radial-gradient(circle, ${def.glow} 0%, transparent 70%)` }}
+                    animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.45 }}
+                  />
+                  {/* 到達フラッシュ（CSS、一度だけ） */}
+                  <div className="absolute inset-0 pointer-events-none rounded-[3px]"
+                       style={{
+                         background: 'radial-gradient(circle, rgba(255,255,255,0.7) 0%, transparent 70%)',
+                         animation: 'station-activate 0.3s ease-out forwards',
+                       }} />
+                </>
               )}
             </motion.div>
           </div>
@@ -377,6 +387,7 @@ export default function App() {
     timeLeft: GAME_DURATION,
   });
   const bgm = useBGM();
+  const se  = useSE();
 
   const [isPlaying,     setIsPlaying]     = useState(false);
   const [isChefMoving,  setIsChefMoving]  = useState(false);
@@ -564,6 +575,7 @@ export default function App() {
     // 既にトラブル中は発動しない
     if (activeTroubleRef.current) return;
 
+    se.playWarning();
     showAnnouncement('KITCHEN TROUBLE！厨房が大変だ！', '⚠️', '#6a0000');
 
     if (Math.random() < 0.5) {
@@ -619,6 +631,7 @@ export default function App() {
 
   /** 土曜日限定トラブルを強制発動（クレーム条件を無視） */
   const triggerSaturdayTrouble = useCallback(() => {
+    se.playWarning();
     if (Math.random() < 0.5) {
       // ① 機材故障: OVEN または STOVE が 10 秒間使用不可
       const breakOven = Math.random() < 0.5;
@@ -770,6 +783,19 @@ export default function App() {
 
     if (currentStation === 'NONE') return;
 
+    // SE: setGameState 前にオーダー状態で判定（closure 内の gameState.orders は現在値）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const matchingOrders = gameState.orders.filter(
+      o => o.dish.steps[o.currentStepIndex] === currentStation,
+    );
+    if (matchingOrders.length > 0) {
+      const willComplete = matchingOrders.some(
+        o => o.currentStepIndex + 1 >= o.dish.steps.length,
+      );
+      if (willComplete) se.playComplete();
+      else              se.playStep();
+    }
+
     setGameState(prev => {
       let totalEarned   = 0;
       let anyProgress   = false;
@@ -907,6 +933,8 @@ export default function App() {
     if (!isPlaying || gameState.isGameOver) return;
 
     const interval = setInterval(() => {
+      let missTriggered = false; // updater 内で設定 → SE はその後再生
+
       setGameState(prev => {
         let penalty     = 0;
         let expiredCount = 0;
@@ -922,6 +950,7 @@ export default function App() {
         }).filter((o): o is Order => o !== null);
 
         if (expiredCount > 0) {
+          missTriggered = true; // updater は同期実行なので直後に参照可能
           addPopup(2, 2, `クレーム！ -${penalty}`);
 
           // 連続クレームカウント → Stage 3 以外で 2 回以上でトラブル発動
@@ -939,9 +968,11 @@ export default function App() {
         }
         return { ...prev, orders: nextOrders };
       });
+      if (missTriggered) se.playMiss(); // updater 同期完了後に SE 再生
     }, 1000);
 
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, gameState.isGameOver, addPopup, triggerKitchenTrouble]);
 
   // ── オーダー不足時の自動補充（ステージ maxOrders 準拠） ──────────
@@ -1031,6 +1062,7 @@ export default function App() {
 
     setIsPlaying(true);
     bgm.start(); // ユーザー操作直後なので autoplay 制限回避済み
+    se.prime();  // SE の AudioContext も同じ操作タイミングで生成
 
     // 初回オーダー（Phase 1: 初級皿のみ）
     const beginnerDishes = DISHES.filter(d => d.steps.length === 3);

@@ -94,3 +94,10 @@
   50%       { opacity: 0.70; }
 }
 
+/* ── ステーション到達フラッシュ（一回だけ再生） ── */
+@keyframes station-activate {
+  0%   { opacity: 0.85; transform: scale(1.0); }
+  35%  { opacity: 0.50; transform: scale(1.12); }
+  100% { opacity: 0;    transform: scale(1.0);  }
+}
+
