@@ -8,15 +8,10 @@ interface ChefProps {
   direction?: 'left' | 'right';
 }
 
-const B = ({ w, h, bg, br = 0, style = {} }: {
-  w: number; h: number; bg: string;
-  br?: number; style?: React.CSSProperties;
-}) => (
-  <div style={{ width: w, height: h, background: bg, borderRadius: br, flexShrink: 0, ...style }} />
-);
-
 export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = false, direction = 'right' }) {
   const OUTLINE = '1.5px solid #000';
+  const FUR    = 'linear-gradient(160deg, #A07040 0%, #7A4A20 100%)';
+  const FUR_DARK = '#5C3010';
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -36,45 +31,71 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
         }}
       >
 
-        {/* ══════════ トック・ブランシュ ══════════ */}
-        <div style={{
-          width: 30, height: 22,
-          background: 'linear-gradient(170deg, #fff 30%, #ddd 100%)',
-          border: OUTLINE,
-          borderRadius: '50% 50% 0 0',
-          boxShadow: 'inset -4px -3px 0 rgba(0,0,0,0.12)',
-        }} />
-        <div style={{
-          width: 36, height: 8,
-          background: 'linear-gradient(180deg, #1a2e6a 0%, #2a48a0 100%)',
-          border: OUTLINE,
-          marginTop: -1,
-        }} />
-        <div style={{
-          width: 38, height: 5,
-          background: 'linear-gradient(180deg, #e8e8e8 0%, #b8b8b8 100%)',
-          border: OUTLINE,
-          marginTop: -1,
-          borderRadius: '0 0 2px 2px',
-        }} />
+        {/* ══════════ トック・ブランシュ ＋ クマ耳 ══════════ */}
+        <div style={{ position: 'relative', width: 44, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-        {/* ══════════ 顔 ══════════ */}
+          {/* クマ耳（帽子の後ろから覗く） */}
+          {[0, 1].map(i => (
+            <div key={i} style={{
+              position: 'absolute',
+              top: 3,
+              ...(i === 0 ? { left: 0 } : { right: 0 }),
+              width: 14, height: 14,
+              borderRadius: '50%',
+              background: FUR_DARK,
+              border: OUTLINE,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#C8906A' }} />
+            </div>
+          ))}
+
+          {/* 帽子本体（耳より前面に来る） */}
+          <div style={{
+            position: 'relative', zIndex: 1,
+            width: 30, height: 22,
+            background: 'linear-gradient(170deg, #fff 30%, #ddd 100%)',
+            border: OUTLINE,
+            borderRadius: '50% 50% 0 0',
+            boxShadow: 'inset -4px -3px 0 rgba(0,0,0,0.12)',
+          }} />
+          <div style={{
+            position: 'relative', zIndex: 1,
+            width: 36, height: 8,
+            background: 'linear-gradient(180deg, #1a2e6a 0%, #2a48a0 100%)',
+            border: OUTLINE,
+            marginTop: -1,
+          }} />
+          <div style={{
+            position: 'relative', zIndex: 1,
+            width: 38, height: 5,
+            background: 'linear-gradient(180deg, #e8e8e8 0%, #b8b8b8 100%)',
+            border: OUTLINE,
+            marginTop: -1,
+            borderRadius: '0 0 2px 2px',
+          }} />
+        </div>
+
+        {/* ══════════ クマの顔 ══════════ */}
         <div style={{
           position: 'relative',
-          width: 28, height: 26,
-          background: 'linear-gradient(170deg, #fde0b0 0%, #e8b870 100%)',
+          width: 34, height: 32,
+          background: FUR,
           border: OUTLINE,
-          borderRadius: '40% 40% 50% 50%',
+          borderRadius: '38% 38% 46% 46%',
           marginTop: -1,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          paddingTop: 4,
-          boxShadow: 'inset -3px -3px 0 rgba(0,0,0,0.10)',
+          paddingTop: 6,
+          boxShadow: 'inset -3px -3px 0 rgba(0,0,0,0.14)',
         }}>
-          <div style={{ position: 'absolute', top: 4, left: '14%', width: '26%', height: 2, background: '#3a2008', borderRadius: 1, transform: 'rotate(-8deg)' }} />
-          <div style={{ position: 'absolute', top: 4, right: '14%', width: '26%', height: 2, background: '#3a2008', borderRadius: 1, transform: 'rotate(8deg)' }} />
-          <div style={{ display: 'flex', gap: 6 }}>
+          {/* 眉毛 */}
+          <div style={{ position: 'absolute', top: 5, left: '12%', width: '26%', height: 2, background: '#2A1008', borderRadius: 1, transform: 'rotate(-7deg)' }} />
+          <div style={{ position: 'absolute', top: 5, right: '12%', width: '26%', height: 2, background: '#2A1008', borderRadius: 1, transform: 'rotate(7deg)' }} />
+
+          {/* 目（まばたきアニメ維持） */}
+          <div style={{ display: 'flex', gap: 8 }}>
             {[0, 1].map(i => (
               <motion.div
                 key={i}
@@ -86,12 +107,34 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
               </motion.div>
             ))}
           </div>
-          <div style={{ width: 5, height: 3, background: '#c07040', borderRadius: '50%', marginTop: 2, opacity: 0.7 }} />
-          <svg width="20" height="8" viewBox="0 0 20 8" style={{ marginTop: 1 }}>
-            <path d="M1,3 Q3,0 7,3 Q10,5 10,3 Q10,5 13,3 Q17,0 19,3 Q16,8 10,6 Q4,8 1,3 Z" fill="#3a1a08" />
-          </svg>
-          <div style={{ position: 'absolute', width: 6, height: 4, background: 'rgba(220,80,60,0.35)', borderRadius: '50%', bottom: 3, left: 1 }} />
-          <div style={{ position: 'absolute', width: 6, height: 4, background: 'rgba(220,80,60,0.35)', borderRadius: '50%', bottom: 3, right: 1 }} />
+
+          {/* マズル（口周り） */}
+          <div style={{
+            position: 'relative',
+            width: 20, height: 14,
+            background: 'linear-gradient(180deg, #D4A87A 0%, #BA9060 100%)',
+            borderRadius: '50%',
+            marginTop: 3,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            paddingTop: 2,
+          }}>
+            {/* クマの鼻 */}
+            <div style={{
+              width: 11, height: 6,
+              background: 'linear-gradient(180deg, #1A0A04 0%, #0D0502 100%)',
+              borderRadius: '40% 40% 50% 50%',
+              boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.18)',
+            }} />
+            {/* 口 */}
+            <svg width="14" height="7" viewBox="0 0 14 7" style={{ marginTop: 1 }}>
+              <path d="M2,1 Q7,6 12,1" fill="none" stroke="#2A1008" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M7,2 L7,5" fill="none" stroke="#2A1008" strokeWidth="1" strokeLinecap="round" />
+            </svg>
+          </div>
+
+          {/* ほっぺ */}
+          <div style={{ position: 'absolute', width: 7, height: 5, background: 'rgba(220,80,60,0.32)', borderRadius: '50%', bottom: 4, left: 1 }} />
+          <div style={{ position: 'absolute', width: 7, height: 5, background: 'rgba(220,80,60,0.32)', borderRadius: '50%', bottom: 4, right: 1 }} />
         </div>
 
         {/* ══════════ 首・スカーフ ══════════ */}
@@ -129,12 +172,12 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
             }} />
           ))}
 
-          {/* ── 左腕 + レードル（おたま） ── */}
+          {/* 左腕 + レードル */}
           <motion.div
             style={{
               position: 'absolute', left: -8, top: 2,
               width: 8, height: 16,
-              background: 'linear-gradient(90deg, #e0e0e0 0%, #ffffff 100%)',
+              background: FUR,
               border: OUTLINE,
               borderRadius: '50%',
               transformOrigin: 'top right',
@@ -143,11 +186,8 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
             animate={{ rotate: isMoving ? [-28, 28] : [-5, 5] }}
             transition={{ duration: 0.22, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
           >
-            {/* レードル本体 */}
             <div style={{ position: 'absolute', bottom: -18, left: -3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {/* グリップ */}
               <div style={{ width: 3, height: 9, background: 'linear-gradient(180deg, #c0c0c0 0%, #909090 100%)', border: '1px solid #606060', borderRadius: 2 }} />
-              {/* おたまの丸い部分 */}
               <div style={{
                 width: 13, height: 11, borderRadius: '50%',
                 background: 'radial-gradient(circle at 35% 30%, #e8e8e8 0%, #b0b0b0 100%)',
@@ -158,12 +198,12 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
             </div>
           </motion.div>
 
-          {/* ── 右腕 + フライパン ── */}
+          {/* 右腕 + フライパン */}
           <motion.div
             style={{
               position: 'absolute', right: -8, top: 2,
               width: 8, height: 16,
-              background: 'linear-gradient(270deg, #e0e0e0 0%, #ffffff 100%)',
+              background: FUR,
               border: OUTLINE,
               borderRadius: '50%',
               transformOrigin: 'top left',
@@ -172,11 +212,8 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
             animate={{ rotate: isMoving ? [28, -28] : [5, -5] }}
             transition={{ duration: 0.22, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
           >
-            {/* フライパン */}
             <div style={{ position: 'absolute', bottom: -20, right: -10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {/* ハンドル */}
               <div style={{ width: 3, height: 8, background: 'linear-gradient(180deg, #5a3010 0%, #3a1808 100%)', border: '1px solid #200c00', borderRadius: 2 }} />
-              {/* パン本体（フライパン形状） */}
               <div style={{
                 position: 'relative',
                 width: 16, height: 12, borderRadius: '50%',
@@ -185,13 +222,11 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
                 marginTop: -1,
                 boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.12)',
               }}>
-                {/* ハイライト */}
                 <div style={{
                   position: 'absolute', top: 2, left: 3,
                   width: 6, height: 4, borderRadius: '50%',
                   background: 'rgba(255,255,255,0.18)',
                 }} />
-                {/* 炒め中のキラキラ（isActive時） */}
                 {isMoving && (
                   <motion.div
                     style={{
