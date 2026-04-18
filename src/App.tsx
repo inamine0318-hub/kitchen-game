@@ -12,6 +12,7 @@ import { Order, StationType, GameState, Popup, OrderType } from './types';
 import { CheckCircle2, AlertTriangle, ChefHat } from 'lucide-react';
 import { useBGM } from './hooks/useBGM';
 import { useSE }  from './hooks/useSE';
+import { getMichelinReview } from './services/geminiService';
 
 // ─── 型定義 ────────────────────────────────────────────────────────────
 type TroubleType = 'OVEN_BROKEN' | 'OIL_SPILL' | 'STOVE_BROKEN';
@@ -1111,7 +1112,10 @@ export default function App() {
   // ── ゲームオーバー時レビュー生成 + ベストスコア保存 ──────────────
   useEffect(() => {
     if (gameState.isGameOver) {
+      // まずローカル評を即表示し、Gemini が返ったら差し替え
       setReview(getResultComment(gameState.score));
+      getMichelinReview(gameState.score).then(r => { if (r) setReview(r); }).catch(() => {});
+
       const savedBest = parseInt(localStorage.getItem('bestScore') || '0');
       if (gameState.score > savedBest) {
         const rank = getScoreRank(gameState.score);
