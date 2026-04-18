@@ -437,6 +437,8 @@ export default function App() {
   const chefPosRef            = useRef({ x: 2, y: 2 });
   /** 土曜限定トラブルのスケジューラ ref */
   const saturdayTroubleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  /** addPopup の setTimeout を追跡してリークを防ぐ */
+  const popupTimersRef = useRef<NodeJS.Timeout[]>([]);
   /** 現在ステージを useEffect / callback から stale closure なしに参照するための ref */
   const currentStageIdxRef    = useRef(0);
   /** ステージ遷移アナウンスの前ステージ追跡 ref */
@@ -491,7 +493,11 @@ export default function App() {
   const addPopup = useCallback((x: number, y: number, text: string) => {
     const id = Math.random().toString(36).substr(2, 9);
     setPopups(prev => [...prev, { id, x, y, text }]);
-    setTimeout(() => setPopups(prev => prev.filter(p => p.id !== id)), 1000);
+    const tid = setTimeout(() => {
+      setPopups(prev => prev.filter(p => p.id !== id));
+      popupTimersRef.current = popupTimersRef.current.filter(t => t !== tid);
+    }, 900);
+    popupTimersRef.current.push(tid);
   }, []);
 
   // ══════════════════════════════════════════════════════════════════
@@ -1081,6 +1087,7 @@ export default function App() {
       if (comboTimeoutRef.current)       clearTimeout(comboTimeoutRef.current);
       if (movingTimerRef.current)        clearTimeout(movingTimerRef.current);
       if (saturdayTroubleTimerRef.current) clearTimeout(saturdayTroubleTimerRef.current);
+      popupTimersRef.current.forEach(clearTimeout);
     };
   }, []);
 
@@ -1545,7 +1552,7 @@ export default function App() {
       </main>
 
       {/* ── オーダーエリア ── */}
-      <footer className="flex-shrink-0 h-28 p-2 flex gap-2 overflow-x-auto border-t-2 border-zinc-700 shadow-inner scrollbar-hide overflow-y-hidden"
+      <footer className="flex-shrink-0 h-32 p-2 flex gap-2 overflow-x-auto border-t-2 border-zinc-700 shadow-inner scrollbar-hide overflow-y-hidden"
               style={{ background: 'linear-gradient(180deg, #282018 0%, #1a1510 100%)', touchAction: 'pan-x' }}>
         <AnimatePresence mode="popLayout">
           {gameState.orders.map(order => {
@@ -1555,11 +1562,11 @@ export default function App() {
             const blinkDuration = isPhase3 ? 0.18 : 0.38;
             return (
               <motion.div
-                key={order.id} layout
+                key={order.id}
                 initial={{ x: 100, opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ x: -200, opacity: 0, rotate: -10 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                exit={{ x: -100, opacity: 0 }}
+                transition={{ type: 'tween', duration: 0.2 }}
                 className={`relative overflow-hidden h-full p-2 rounded-sm border-l-4 shadow-xl flex flex-col justify-between
                   ${order.orderType === 'course' ? 'min-w-[170px]' : 'min-w-[140px]'}
                   ${isDanger          ? 'border-red-600 bg-red-50'     :
@@ -1570,13 +1577,15 @@ export default function App() {
                     'border-[#800000] bg-white'}
                 `}
               >
-                {/* 赤点滅オーバーレイ（揺れなし） */}
+                {/* 赤点滅オーバーレイ（GPU compositor CSS animation） */}
                 {isDanger && (
-                  <motion.div
+                  <div
                     className="absolute inset-0 pointer-events-none z-0"
-                    style={{ background: 'rgba(200, 0, 0, 0.22)' }}
-                    animate={{ opacity: [0.1, 0.75, 0.1] }}
-                    transition={{ repeat: Infinity, duration: blinkDuration, ease: 'easeInOut' }}
+                    style={{
+                      background: 'rgba(200, 0, 0, 0.22)',
+                      animation: `danger-blink ${blinkDuration}s ease-in-out infinite`,
+                      willChange: 'opacity',
+                    }}
                   />
                 )}
                 <div className="relative z-[1]">
@@ -1592,7 +1601,7 @@ export default function App() {
                          order.orderType === 'rush'    ? '🔥 RUSH'   :
                          order.isVIP                   ? '⭐ VIP'    : 'MENU'}
                       </p>
-                      {isDanger && <AlertTriangle size={8} className="text-red-600 animate-bounce" />}
+                      {isDanger && <AlertTriangle size={8} className="text-red-600" />}
                     </div>
                     <span className={`text-[8px] font-bold
                       ${order.orderType === 'rush' ? 'text-orange-600' :
@@ -1616,17 +1625,17 @@ export default function App() {
                       {Math.ceil(order.limitTime / 1000)}s
                     </span>
                   </div>
-                  <div className="flex gap-1 flex-wrap">
+                  <div className="flex gap-0.5 flex-nowrap overflow-hidden">
                     {order.dish.steps.map((step, idx) => {
                       const isCompleted = idx < order.currentStepIndex;
                       const isCurrent   = idx === order.currentStepIndex;
                       return (
                         <div key={idx}
-                             className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] border transition-all duration-300
+                             className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] border transition-colors
                                ${isCompleted ? 'bg-green-50 border-green-500 text-green-600' :
                                  isCurrent   ? 'bg-yellow-50 border-yellow-500 text-yellow-600 animate-pulse' :
                                  'bg-gray-50 border-gray-100 text-gray-300 opacity-40'}`}>
-                          {isCompleted ? <CheckCircle2 size={9} /> : STATION_ICONS[step]}
+                          {isCompleted ? <CheckCircle2 size={8} /> : STATION_ICONS[step]}
                         </div>
                       );
                     })}
