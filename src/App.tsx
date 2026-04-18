@@ -1578,11 +1578,12 @@ export default function App() {
             return (
               <motion.div
                 key={order.id}
-                initial={{ x: 100, opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ x: -100, opacity: 0 }}
-                transition={{ type: 'tween', duration: 0.2 }}
-                className={`relative overflow-hidden h-full p-2 rounded-sm border-l-4 shadow-xl flex flex-col justify-between flex-shrink-0
+                initial={{ x: 80, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -80, opacity: 0 }}
+                transition={{ type: 'tween', duration: 0.18 }}
+                style={{ willChange: 'transform, opacity' }}
+                className={`relative overflow-hidden h-full rounded-sm border-l-4 shadow-lg flex-shrink-0
                   ${order.orderType === 'course' ? 'w-[170px]' : 'w-[140px]'}
                   ${isDanger          ? 'border-red-600 bg-red-50'     :
                     order.orderType === 'course'  ? 'border-yellow-400 bg-yellow-50' :
@@ -1592,21 +1593,19 @@ export default function App() {
                     'border-[#800000] bg-white'}
                 `}
               >
-                {/* 赤点滅オーバーレイ（GPU compositor CSS animation） */}
+                {/* 赤点滅オーバーレイ */}
                 {isDanger && (
-                  <div
-                    className="absolute inset-0 pointer-events-none z-0"
-                    style={{
-                      background: 'rgba(200, 0, 0, 0.22)',
-                      animation: `danger-blink ${blinkDuration}s ease-in-out infinite`,
-                      willChange: 'opacity',
-                    }}
-                  />
+                  <div className="absolute inset-0 pointer-events-none z-0"
+                       style={{ background: 'rgba(200,0,0,0.22)', animation: `danger-blink ${blinkDuration}s ease-in-out infinite`, willChange: 'opacity' }} />
                 )}
-                <div className="relative z-[1]">
-                  <div className="flex justify-between items-start mb-0.5">
-                    <div className="flex items-center gap-1">
-                      <p className={`text-[7px] font-bold tracking-widest uppercase
+
+                {/* カードコンテンツ（左詰め固定） */}
+                <div className="relative z-[1] h-full flex flex-col px-2 py-1.5 gap-1" style={{ alignItems: 'flex-start' }}>
+
+                  {/* バッジ行 */}
+                  <div className="w-full flex items-center justify-between">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <p className={`text-[7px] font-bold tracking-widest uppercase truncate
                         ${order.orderType === 'course'  ? 'text-yellow-700' :
                           order.orderType === 'regular' ? 'text-green-700'  :
                           order.orderType === 'rush'    ? 'text-orange-700' :
@@ -1616,37 +1615,34 @@ export default function App() {
                          order.orderType === 'rush'    ? '🔥 RUSH'   :
                          order.isVIP                   ? '⭐ VIP'    : 'MENU'}
                       </p>
-                      {isDanger && <AlertTriangle size={8} className="text-red-600" />}
+                      {isDanger && <AlertTriangle size={8} className="text-red-600 flex-shrink-0" />}
                     </div>
-                    <span className={`text-[8px] font-bold
+                    <span className={`text-[8px] font-bold flex-shrink-0
                       ${order.orderType === 'rush' ? 'text-orange-600' :
                         order.isVIP ? 'text-yellow-600' : 'text-gray-400'}`}>
                       +{order.dish.points}
                     </span>
                   </div>
-                  {order.orderType === 'regular' && order.regularName && (
-                    <p className="text-[7px] text-green-700 font-bold mb-0.5 truncate">{order.regularName}</p>
-                  )}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-lg">{order.dish.icon}</span>
-                    <p className="text-[10px] font-black tracking-tighter leading-none">{order.dish.name}</p>
-                  </div>
-                </div>
 
-                <div className="relative z-[1] mt-1">
-                  <div className="flex justify-between text-[6px] font-bold text-gray-400 uppercase mb-1">
-                    <span>工程進捗</span>
-                    <span className={isDanger ? 'text-red-600 font-black' : ''}>
-                      {Math.ceil(order.limitTime / 1000)}s
-                    </span>
+                  {/* 常連名 */}
+                  {order.orderType === 'regular' && order.regularName && (
+                    <p className="text-[7px] text-green-700 font-bold truncate w-full">{order.regularName}</p>
+                  )}
+
+                  {/* 料理名行 */}
+                  <div className="flex items-center gap-1 w-full min-w-0">
+                    <span className="text-base leading-none flex-shrink-0">{order.dish.icon}</span>
+                    <p className="text-[10px] font-black tracking-tight leading-tight break-words min-w-0">{order.dish.name}</p>
                   </div>
-                  <div className="flex gap-0.5 flex-nowrap overflow-hidden">
+
+                  {/* 工程アイコン列 */}
+                  <div className="flex items-center gap-0.5 flex-nowrap overflow-hidden w-full">
                     {order.dish.steps.map((step, idx) => {
                       const isCompleted = idx < order.currentStepIndex;
                       const isCurrent   = idx === order.currentStepIndex;
                       return (
                         <div key={idx}
-                             className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] border transition-colors
+                             className={`w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[8px] border transition-colors
                                ${isCompleted ? 'bg-green-50 border-green-500 text-green-600' :
                                  isCurrent   ? 'bg-yellow-50 border-yellow-500 text-yellow-600 animate-pulse' :
                                  'bg-gray-50 border-gray-100 text-gray-300 opacity-40'}`}>
@@ -1655,17 +1651,20 @@ export default function App() {
                       );
                     })}
                   </div>
-                </div>
 
-                <div className="relative z-[1] mt-1 flex items-center justify-between border-t border-gray-100 pt-1">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[7px] font-bold text-[#800000] uppercase">次:</span>
-                    <div className={`px-1.5 py-0.5 rounded border ${isDanger ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                  {/* 次の工程 + タイマー */}
+                  <div className="w-full flex items-center gap-1 border-t border-gray-100 pt-1 mt-auto">
+                    <span className="text-[7px] font-bold text-[#800000] uppercase flex-shrink-0">次:</span>
+                    <div className={`px-1 py-0.5 rounded border flex-shrink-0 ${isDanger ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
                       <span className={`text-[10px] font-bold ${isDanger ? 'text-red-600' : ''}`}>
                         {STATION_ICONS[order.dish.steps[order.currentStepIndex]] || '完了'}
                       </span>
                     </div>
+                    <span className={`text-[8px] font-bold ml-auto flex-shrink-0 ${isDanger ? 'text-red-600' : 'text-gray-400'}`}>
+                      {Math.ceil(order.limitTime / 1000)}s
+                    </span>
                   </div>
+
                 </div>
               </motion.div>
             );
