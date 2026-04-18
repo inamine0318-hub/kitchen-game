@@ -1567,8 +1567,8 @@ export default function App() {
                 animate={{ opacity: 1 }}
                 exit={{ x: -100, opacity: 0 }}
                 transition={{ type: 'tween', duration: 0.2 }}
-                className={`relative overflow-hidden h-full p-2 rounded-sm border-l-4 shadow-xl flex flex-col justify-between items-start
-                  ${order.orderType === 'course' ? 'min-w-[170px]' : 'min-w-[140px]'}
+                className={`relative overflow-hidden h-full p-2 rounded-sm border-l-4 shadow-xl flex flex-col justify-between flex-shrink-0
+                  ${order.orderType === 'course' ? 'w-[170px]' : 'w-[140px]'}
                   ${isDanger          ? 'border-red-600 bg-red-50'     :
                     order.orderType === 'course'  ? 'border-yellow-400 bg-yellow-50' :
                     order.orderType === 'regular' ? 'border-green-500 bg-green-50'  :
@@ -1588,7 +1588,7 @@ export default function App() {
                     }}
                   />
                 )}
-                <div className="relative z-[1] w-full">
+                <div className="relative z-[1]">
                   <div className="flex justify-between items-start mb-0.5">
                     <div className="flex items-center gap-1">
                       <p className={`text-[7px] font-bold tracking-widest uppercase
@@ -1618,7 +1618,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="relative z-[1] mt-1 w-full">
+                <div className="relative z-[1] mt-1">
                   <div className="flex justify-between text-[6px] font-bold text-gray-400 uppercase mb-1">
                     <span>工程進捗</span>
                     <span className={isDanger ? 'text-red-600 font-black' : ''}>
@@ -1642,7 +1642,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="relative z-[1] mt-1 w-full flex items-center justify-between border-t border-gray-100 pt-1">
+                <div className="relative z-[1] mt-1 flex items-center justify-between border-t border-gray-100 pt-1">
                   <div className="flex items-center gap-1">
                     <span className="text-[7px] font-bold text-[#800000] uppercase">次:</span>
                     <div className={`px-1.5 py-0.5 rounded border ${isDanger ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
