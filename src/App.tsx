@@ -120,33 +120,33 @@ function getResultComment(score: number): string {
     {
       min: 6000,
       comments: [
-        '神の領域に踏み込んだシェフよ、あなたの皿は時代を超える。',
-        'Légendaire — この名に恥じぬ完璧な厨房であった。ミシュランも膝を屈する。',
-        '料理とは記憶である。今宵の皿は永遠に私の記憶に刻まれるだろう。',
+        '見事だ。だが一度完璧な仕事をしたからといって慢心するな。明日も同じレベルを見せてみろ。',
+        'この厨房で今まで見た最高のパフォーマンスだ。しかし伝説とは一夜では作れない。明日も来い。',
+        '認めよう。だが真の一流は賞賛を求めない。黙ってまた鍋を火にかけろ。',
       ],
     },
     {
       min: 3000,
       comments: [
-        '技巧は確かだ。だが、真の一流にはあと一歩の大胆さが必要だ。',
-        'Excellent — 素材への敬意が皿に宿っていた。渋々ながら認めよう。',
-        '惜しい。あと少し火加減を磨けば、星に手が届いたかもしれない。',
+        '悪くない。だが「悪くない」はミシュランの星とは程遠い。もっと貪欲になれ。',
+        '技術は確かだ。しかし料理は技術だけでは届かない領域がある。そこに気づけているか？',
+        '及第点だ。だが私の厨房では及第点は最低ラインに過ぎない。もう一段上を目指せ。',
       ],
     },
     {
       min: 1000,
       comments: [
-        '悪くはない。だが記憶に残る皿は一つもなかったと言わざるを得ない。',
-        '平均的な仕事だ。Ordinaire — 料理人なら「普通」を恥と知れ。',
-        '及第点ではある。だが客の心を動かすには、まだ修練が必要だ。',
+        '平均的な仕事だ。この世界に「普通」で生き残れる場所はない。そろそろ本気を見せろ。',
+        '食材への敬意が足りない。皿の前に、まず料理人としての覚悟を鍛え直せ。',
+        '客を満足させることと感動させることは全く別物だ。お前はまだ前者にも届いていない。',
       ],
     },
     {
       min: 0,
       comments: [
-        "C'est catastrophique — 厨房を名乗るのはまだ早い。出直してきたまえ。",
-        'フランスの料理学校なら初日で追い出されるレベルであった。',
-        '皿の前に、まず謙虚さと忍耐を学ぶべきであろう。',
+        'これが仕事のつもりか。この皿を客に出す前に、まず料理の定義から学び直せ。',
+        '恥を知れ。食材も時間も客への敬意も、全て無駄にした。料理人を名乗る資格はない。',
+        '私の厨房から出て行け。戻ってくる前に一から修行し直すことだ。最低でも五年はかかる。',
       ],
     },
   ];
@@ -448,8 +448,8 @@ export default function App() {
   const currentStageIdx = useMemo(() => {
     const t = gameState.timeLeft;
     if (!isPlaying || gameState.isGameOver) return 0;
-    // Phase 1: t>60, Phase 2: t>30, Phase 3: t>15, Phase 4(地獄): t<=15
-    return t > 60 ? 0 : t > 30 ? 1 : t > 15 ? 2 : 3;
+    // 3フェーズ 30秒区切り: Phase1(t>60) / Phase2(t>30) / Phase3(地獄 t<=30)
+    return t > 60 ? 0 : t > 30 ? 1 : 2;
   }, [gameState.timeLeft, isPlaying, gameState.isGameOver]);
 
   const currentStage = STAGES[currentStageIdx];
@@ -650,7 +650,7 @@ export default function App() {
     }
 
     const schedule = () => {
-      const delay = 30000 + Math.random() * 15000; // 30〜45 秒のランダム間隔
+      const delay = 7000 + Math.random() * 10000; // Phase3は30秒しかないので 7〜17 秒のランダム間隔
       saturdayTroubleTimerRef.current = setTimeout(() => {
         if (isPlayingRef.current && !isGameOverRef.current && currentStageIdxRef.current === 2) {
           triggerSaturdayTrouble();
@@ -1192,7 +1192,7 @@ export default function App() {
             <div className="flex items-center gap-1 mt-0.5">
               <span style={{ fontSize: '0.6rem' }}>{currentStage.emoji}</span>
               <span className="text-[8px] font-black tracking-wider"
-                    style={{ color: currentStageIdx === 2 ? '#ff6060' : currentStageIdx === 1 ? '#ffc060' : '#80c080' }}>
+                    style={{ color: currentStageIdx === 2 ? '#ff4040' : currentStageIdx === 1 ? '#ffc060' : '#80c080' }}>
                 STAGE {currentStage.stage} {currentStage.name}
               </span>
             </div>
@@ -1469,18 +1469,16 @@ export default function App() {
           {gameState.orders.map(order => {
             const isPhase3 = gameState.timeLeft <= 30 && isPlaying && !gameState.isGameOver;
             const initialTime = order.initialLimitTime ?? order.limitTime;
-            const isDanger = isPhase3 || order.limitTime < initialTime * 0.35;
+            const isDanger = isPhase3 || order.limitTime < initialTime * 0.5;
+            const blinkDuration = isPhase3 ? 0.18 : 0.38;
             return (
               <motion.div
                 key={order.id} layout
                 initial={{ x: 100, opacity: 0 }}
-                animate={{ x: isDanger ? [0, -4, 4, -2, 2, 0] : 0, opacity: 1 }}
+                animate={{ opacity: 1 }}
                 exit={{ x: -200, opacity: 0, rotate: -10 }}
-                transition={{
-                  type: 'spring', stiffness: 300, damping: 30,
-                  x: isDanger ? { repeat: Infinity, duration: isPhase3 ? 0.12 : 0.25 } : { type: 'spring' },
-                }}
-                className={`h-full p-2 rounded-sm border-l-4 shadow-xl flex flex-col justify-between transition-colors duration-300
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className={`relative overflow-hidden h-full p-2 rounded-sm border-l-4 shadow-xl flex flex-col justify-between
                   ${order.orderType === 'course' ? 'min-w-[170px]' : 'min-w-[140px]'}
                   ${isDanger          ? 'border-red-600 bg-red-50'     :
                     order.orderType === 'course'  ? 'border-yellow-400 bg-yellow-50' :
@@ -1490,7 +1488,16 @@ export default function App() {
                     'border-[#800000] bg-white'}
                 `}
               >
-                <div>
+                {/* 赤点滅オーバーレイ（揺れなし） */}
+                {isDanger && (
+                  <motion.div
+                    className="absolute inset-0 pointer-events-none z-0"
+                    style={{ background: 'rgba(200, 0, 0, 0.22)' }}
+                    animate={{ opacity: [0.1, 0.75, 0.1] }}
+                    transition={{ repeat: Infinity, duration: blinkDuration, ease: 'easeInOut' }}
+                  />
+                )}
+                <div className="relative z-[1]">
                   <div className="flex justify-between items-start mb-0.5">
                     <div className="flex items-center gap-1">
                       <p className={`text-[7px] font-bold tracking-widest uppercase
@@ -1520,7 +1527,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="mt-1">
+                <div className="relative z-[1] mt-1">
                   <div className="flex justify-between text-[6px] font-bold text-gray-400 uppercase mb-1">
                     <span>工程進捗</span>
                     <span className={isDanger ? 'text-red-600 font-black' : ''}>
@@ -1544,7 +1551,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="mt-1 flex items-center justify-between border-t border-gray-100 pt-1">
+                <div className="relative z-[1] mt-1 flex items-center justify-between border-t border-gray-100 pt-1">
                   <div className="flex items-center gap-1">
                     <span className="text-[7px] font-bold text-[#800000] uppercase">次:</span>
                     <div className={`px-1.5 py-0.5 rounded border ${isDanger ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>

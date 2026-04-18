@@ -14,24 +14,19 @@ export interface StageConfig {
 
 export const STAGES: StageConfig[] = [
   {
-    stage: 1, name: '平日', emoji: '📅',
+    stage: 1, name: 'Phase I', emoji: '📅',
     spawnRate: 4000, patience: 10000, maxOrders: 2,
-    announceBg: '#1a3a1a', announcement: '平日営業スタート！落ち着いてこなせ',
+    announceBg: '#1a3a1a', announcement: '営業開始。落ち着いてこなせ。',
   },
   {
-    stage: 2, name: '金曜', emoji: '🌙',
+    stage: 2, name: 'Phase II', emoji: '🌙',
     spawnRate: 2500, patience: 8500, maxOrders: 3,
-    announceBg: '#3a2800', announcement: '金曜！注文が殺到してきた！',
+    announceBg: '#3a2800', announcement: '混んできた。ペースを落とすな！',
   },
   {
-    stage: 3, name: '土曜', emoji: '🔥',
-    spawnRate: 1500, patience: 7000, maxOrders: 4,
-    announceBg: '#5a0000', announcement: '土曜地獄！休む暇はない！',
-  },
-  {
-    stage: 4, name: '地獄', emoji: '💀',
-    spawnRate: 1200, patience: 7000, maxOrders: 4,
-    announceBg: '#3a003a', announcement: '地獄の最終章！もう後がない！',
+    stage: 3, name: '地獄', emoji: '🔥',
+    spawnRate: 1300, patience: 7000, maxOrders: 4,
+    announceBg: '#5a0000', announcement: '地獄の最終フェーズ！限界まで攻めろ！',
   },
 ];
 
@@ -63,6 +58,14 @@ export const DISHES: Dish[] = [
     steps: ['PREP', 'TABLE', 'SERVE'],
     points: 70,
     color: '#B5EAD7',
+  },
+  {
+    id: 'ratatouille',
+    name: 'ラタトゥイユ',
+    icon: '🫕',
+    steps: ['PREP', 'STOVE', 'SERVE'],
+    points: 75,
+    color: '#E8C9A0',
   },
 
   // ══════════════════════════════════════════════════════
