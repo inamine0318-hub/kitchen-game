@@ -42,7 +42,7 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
   // coat top は head(22) + face(30) + neck(9) - marginTop(1) = 60px
   // 腕は coat の top:1 位置 → outer motion.div から 61px
   // head(26) + face(24) + neck(9) + coat.marginTop(-1) + coat arm offset(1) = 59
-  const ARM_TOP = 59;
+  const ARM_TOP = 43;
 
   const armLeft = (
     <motion.div
@@ -237,17 +237,10 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
         {armLeft}
         {armRight}
 
-        {/* ══════════ 頭部（耳＋頭頂ドーム）38px幅・横楕円に近づけた ══════════ */}
-        {/*
-          head container : 44 × 26
-          ears            : 13 × 13, top:0, 耳の上半分が頭頂部から飛び出す
-          head dome       : 38 × 22, bottom:0, left:3
-          face            : 38 × 24
-          combined visible head area ≈ 38 × 46 → ratio ≈ 0.83（元 34×46=0.74 から改善）
-        */}
-        <div style={{ position: 'relative', width: 44, height: 26, flexShrink: 0 }}>
+        {/* ══════════ 頭部（耳＋一体型楕円）シームレス統合版 ══════════ */}
+        <div style={{ position: 'relative', width: 44, height: 36, flexShrink: 0, zIndex: 2, marginBottom: -2 }}>
 
-          {/* クマ耳（頭頂部の両脇・自然な丸み） */}
+          {/* クマ耳（楕円の後ろに配置 zIndex:0） */}
           {[0, 1].map(i => (
             <div key={i} style={{
               position: 'absolute', top: 0,
@@ -263,7 +256,6 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
               ].join(', '),
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              {/* 内耳（ピンク系グラデーション） */}
               <div style={{
                 width: 6, height: 6, borderRadius: '50%',
                 background: 'radial-gradient(circle at 30% 30%,#EDBA90 0%,#C07848 60%,#9A5828 100%)',
@@ -273,92 +265,67 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
             </div>
           ))}
 
-          {/* 頭頂部ドーム（38px幅・耳より前面・より丸い半楕円） */}
+          {/* 頭部＋顔 一体型楕円（境界線なし） */}
           <div style={{
-            position: 'absolute', bottom: 0, left: 3, width: 38, height: 22,
+            position: 'absolute', top: 2, left: 3, width: 38, height: 34,
             background: furLayers(),
-            borderTop: OL, borderLeft: OL, borderRight: OL, borderBottom: 'none',
-            borderRadius: '50% 50% 0 0',
+            border: OL,
+            borderRadius: '52% 52% 48% 48%',
             zIndex: 1,
             boxShadow: [
-              'inset -3px -1px 4px rgba(0,0,0,.10)',
-              'inset 2px 4px 5px rgba(255,215,130,.20)',
+              'inset -3px -4px 5px rgba(0,0,0,.12)',
+              'inset 2px 4px 6px rgba(255,215,130,.22)',
             ].join(', '),
             overflow: 'hidden',
           }}>
-            {/* 頭頂ハイライト（水彩ぼかし） */}
+            {/* 頭頂ハイライト */}
             <div style={{
-              position: 'absolute', top: 4, left: 7, width: 16, height: 10,
+              position: 'absolute', top: 3, left: 7, width: 16, height: 10,
               background: 'radial-gradient(ellipse,rgba(255,228,165,.45) 0%,transparent 100%)',
               borderRadius: '50%', filter: 'blur(2.5px)',
             }} />
-          </div>
-        </div>
 
-        {/* ══════════ クマの顔（38px幅・頭頂ドームにシームレス接続） ══════════ */}
-        <div style={{
-          position: 'relative',
-          width: 38, height: 24,
-          background: furLayers(),
-          borderLeft: OL, borderRight: OL, borderBottom: OL, borderTop: 'none',
-          borderRadius: '0 0 50% 50%',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 3,
-          boxShadow: [
-            'inset -3px -4px 5px rgba(0,0,0,.13)',
-            'inset 2px 2px 4px rgba(255,200,120,.12)',
-          ].join(', '),
-          overflow: 'hidden',
-        }}>
-          {/* 顔ハイライト（左上の水彩光） */}
-          <div style={{
-            position: 'absolute', top: 1, left: 3, width: 13, height: 9,
-            background: 'radial-gradient(ellipse,rgba(255,228,165,.32) 0%,transparent 100%)',
-            borderRadius: '50%',
-          }} />
+            {/* 眉毛 */}
+            <div style={{ position: 'absolute', top: 7, left: '12%', width: '24%', height: 2.5, background: `linear-gradient(90deg,transparent,${C.furDark} 30%,${C.furDark} 70%,transparent)`, borderRadius: 2, transform: 'rotate(-7deg)' }} />
+            <div style={{ position: 'absolute', top: 7, right: '12%', width: '24%', height: 2.5, background: `linear-gradient(90deg,transparent,${C.furDark} 30%,${C.furDark} 70%,transparent)`, borderRadius: 2, transform: 'rotate(7deg)' }} />
 
-          {/* 眉毛（やや丸顔に合わせて位置を調整） */}
-          <div style={{ position: 'absolute', top: 3, left: '12%', width: '24%', height: 2.5, background: `linear-gradient(90deg,transparent,${C.furDark} 30%,${C.furDark} 70%,transparent)`, borderRadius: 2, transform: 'rotate(-7deg)' }} />
-          <div style={{ position: 'absolute', top: 3, right: '12%', width: '24%', height: 2.5, background: `linear-gradient(90deg,transparent,${C.furDark} 30%,${C.furDark} 70%,transparent)`, borderRadius: 2, transform: 'rotate(7deg)' }} />
+            {/* 目（まばたきアニメーション） */}
+            <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 10 }}>
+              {[0, 1].map(i => (
+                <motion.div key={i}
+                  style={{ position: 'relative', width: 5, height: 6, background: '#1A0A04', borderRadius: '50%', boxShadow: '0 0 0 1px rgba(90,48,16,.5)' }}
+                  animate={{ scaleY: [1, 0.08, 1] }}
+                  transition={{ duration: 4, repeat: Infinity, times: [0, 0.04, 0.14], delay: i * 0.04 }}
+                >
+                  <div style={{ position: 'absolute', top: 1, right: 1, width: 2, height: 2, background: 'rgba(255,255,255,0.85)', borderRadius: '50%' }} />
+                </motion.div>
+              ))}
+            </div>
 
-          {/* 目（まばたきアニメーション・間隔を顔幅に合わせ微調整） */}
-          <div style={{ display: 'flex', gap: 10 }}>
-            {[0, 1].map(i => (
-              <motion.div key={i}
-                style={{ position: 'relative', width: 5, height: 6, background: '#1A0A04', borderRadius: '50%', boxShadow: '0 0 0 1px rgba(90,48,16,.5)' }}
-                animate={{ scaleY: [1, 0.08, 1] }}
-                transition={{ duration: 4, repeat: Infinity, times: [0, 0.04, 0.14], delay: i * 0.04 }}
-              >
-                <div style={{ position: 'absolute', top: 1, right: 1, width: 2, height: 2, background: 'rgba(255,255,255,0.85)', borderRadius: '50%' }} />
-              </motion.div>
-            ))}
-          </div>
-
-          {/* マズル（幅広め・顔の丸みに合わせて拡大） */}
-          <div style={{
-            position: 'relative',
-            width: 22, height: 12, borderRadius: '50%',
-            background: [C.muzzleHL, C.muzzle].join(', '),
-            border: OLS,
-            marginTop: 2,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 2,
-            boxShadow: 'inset -1px -1px 3px rgba(0,0,0,.10), inset 1px 1px 2px rgba(255,240,200,.30)',
-          }}>
-            {/* クマ鼻 */}
+            {/* マズル */}
             <div style={{
-              width: 12, height: 6, borderRadius: '38% 38% 52% 52%',
-              background: C.nose,
-              boxShadow: 'inset 0 1px 3px rgba(255,255,255,.18), 0 1px 2px rgba(0,0,0,.35)',
-            }} />
-            {/* 口 */}
-            <svg width="14" height="6" viewBox="0 0 14 6" style={{ marginTop: 1 }}>
-              <path d="M2,1.5 Q7,5.5 12,1.5" fill="none" stroke={C.outline} strokeWidth="1.3" strokeLinecap="round" />
-              <path d="M7,2.5 L7,4.5"         fill="none" stroke={C.outline} strokeWidth="1"   strokeLinecap="round" />
-            </svg>
-          </div>
+              position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)',
+              width: 22, height: 13, borderRadius: '50%',
+              background: [C.muzzleHL, C.muzzle].join(', '),
+              border: OLS,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 2,
+              boxShadow: 'inset -1px -1px 3px rgba(0,0,0,.10), inset 1px 1px 2px rgba(255,240,200,.30)',
+            }}>
+              <div style={{
+                width: 12, height: 6, borderRadius: '38% 38% 52% 52%',
+                background: C.nose,
+                boxShadow: 'inset 0 1px 3px rgba(255,255,255,.18), 0 1px 2px rgba(0,0,0,.35)',
+              }} />
+              <svg width="14" height="6" viewBox="0 0 14 6" style={{ marginTop: 1 }}>
+                <path d="M2,1.5 Q7,5.5 12,1.5" fill="none" stroke={C.outline} strokeWidth="1.3" strokeLinecap="round" />
+                <path d="M7,2.5 L7,4.5"         fill="none" stroke={C.outline} strokeWidth="1"   strokeLinecap="round" />
+              </svg>
+            </div>
 
-          {/* ほっぺ（丸顔に合わせた位置） */}
-          <div style={{ position: 'absolute', width: 7, height: 5, background: C.cheek, borderRadius: '50%', bottom: 3, left: 1, filter: 'blur(1.5px)' }} />
-          <div style={{ position: 'absolute', width: 7, height: 5, background: C.cheek, borderRadius: '50%', bottom: 3, right: 1, filter: 'blur(1.5px)' }} />
+            {/* ほっぺ */}
+            <div style={{ position: 'absolute', width: 7, height: 5, background: C.cheek, borderRadius: '50%', bottom: 5, left: 1, filter: 'blur(1.5px)' }} />
+            <div style={{ position: 'absolute', width: 7, height: 5, background: C.cheek, borderRadius: '50%', bottom: 5, right: 1, filter: 'blur(1.5px)' }} />
+          </div>
         </div>
 
         {/* ══════════ 首・スカーフ ══════════ */}
