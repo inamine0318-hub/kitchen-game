@@ -3,7 +3,6 @@ import { useRef, useCallback } from 'react';
 export function useSE() {
   const ctxRef = useRef<AudioContext | null>(null);
 
-  // AudioContext を取得（なければ生成）
   const getCtx = useCallback((): AudioContext | null => {
     try {
       if (!ctxRef.current || ctxRef.current.state === 'closed') {
@@ -18,17 +17,15 @@ export function useSE() {
     }
   }, []);
 
-  // ユーザー操作時に AudioContext を生成しておく（iOS autoplay 対策）
   const prime = useCallback(() => { getCtx(); }, [getCtx]);
 
-  // 基本音生成（fire & forget）
   const tone = useCallback((
     startFreq: number,
     endFreq: number,
     duration: number,
     waveform: OscillatorType,
     peakGain: number,
-    delaySeconds: number = 0,
+    delaySeconds = 0,
   ) => {
     const ac = getCtx();
     if (!ac) return;
@@ -63,16 +60,46 @@ export function useSE() {
     tone(1047, 1047, 0.10, 'sine', 0.16, 0.065);
   }, [tone]);
 
-  // ─── 料理完成音（C-E-G ファンファーレ）──────────────────────────────
-  const playComplete = useCallback(() => {
-    tone(523, 523, 0.08, 'sine', 0.28);
-    tone(659, 659, 0.08, 'sine', 0.28, 0.09);
-    tone(784, 784, 0.20, 'sine', 0.34, 0.18);
+  // ─── 料理完成音（C-E-G-C' 4音ファンファーレ）────────────────────────
+  const playPerfect = useCallback(() => {
+    tone(523,  523,  0.07, 'sine',     0.30);          // C5
+    tone(659,  659,  0.07, 'sine',     0.28, 0.07);    // E5
+    tone(784,  784,  0.07, 'sine',     0.28, 0.14);    // G5
+    tone(1047, 1047, 0.24, 'sine',     0.36, 0.21);    // C6（長め）
+    tone(2093, 2093, 0.18, 'triangle', 0.07, 0.21);    // C7 shimmer
   }, [tone]);
 
-  // ─── ミス・タイムアウト音（下降するノイズ混じりバズ）─────────────
+  // ─── コンボ達成音（レベル別・爽快な上昇アルペジオ）──────────────────
+  const playCombo = useCallback((level: number) => {
+    if (level >= 8) {
+      // Epic: 5音フルコード
+      tone(523,  523,  0.06, 'triangle', 0.20);
+      tone(659,  659,  0.06, 'triangle', 0.18, 0.06);
+      tone(784,  784,  0.06, 'triangle', 0.18, 0.12);
+      tone(1047, 1047, 0.28, 'sine',     0.34, 0.18);
+      tone(1319, 1319, 0.24, 'sine',     0.26, 0.23);
+    } else if (level >= 5) {
+      // Strong: 4音
+      tone(659,  659,  0.07, 'triangle', 0.22);
+      tone(784,  784,  0.07, 'triangle', 0.20, 0.07);
+      tone(1047, 1047, 0.22, 'sine',     0.28, 0.14);
+      tone(1319, 1319, 0.18, 'sine',     0.22, 0.20);
+    } else if (level >= 3) {
+      // Medium: 3音
+      tone(784,  784,  0.07, 'triangle', 0.22);
+      tone(1047, 1047, 0.18, 'sine',     0.26, 0.07);
+      tone(1319, 1319, 0.16, 'sine',     0.20, 0.14);
+    } else {
+      // Small: 2音ペア
+      tone(880,  1047, 0.12, 'sine', 0.22);
+      tone(1047, 1047, 0.15, 'sine', 0.18, 0.11);
+    }
+  }, [tone]);
+
+  // ─── ミス・タイムアウト音（衝撃＋下降バズ）──────────────────────────
   const playMiss = useCallback(() => {
-    tone(220, 60, 0.35, 'sawtooth', 0.18);
+    tone(160, 60,  0.18, 'sine',     0.30);        // 低音インパクト
+    tone(220, 55,  0.32, 'sawtooth', 0.16, 0.03);  // 下降バズ
   }, [tone]);
 
   // ─── トラブル警告音（サイレン 4 パルス）────────────────────────────
@@ -82,5 +109,5 @@ export function useSE() {
     });
   }, [tone]);
 
-  return { prime, playStep, playComplete, playMiss, playWarning };
+  return { prime, playStep, playPerfect, playCombo, playMiss, playWarning };
 }

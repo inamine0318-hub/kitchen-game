@@ -545,6 +545,8 @@ export default function App() {
     const { bonus, freeze } = getComboReward(completedCount);
     if (bonus === 0) return 0;
 
+    se.playCombo(completedCount);
+
     // コンボポップアップ表示
     if (comboTimeoutRef.current) clearTimeout(comboTimeoutRef.current);
     setComboPopup({ count: completedCount, bonus, freeze });
@@ -554,7 +556,7 @@ export default function App() {
     if (freeze > 0) startTimeFreeze(freeze);
 
     return bonus;
-  }, [startTimeFreeze]);
+  }, [startTimeFreeze, se]);
 
   /** 時間停止カウントダウン（useEffect チェーンで1秒ずつ減少） */
   useEffect(() => {
@@ -793,7 +795,7 @@ export default function App() {
       const willComplete = matchingOrders.some(
         o => o.currentStepIndex + 1 >= o.dish.steps.length,
       );
-      if (willComplete) se.playComplete();
+      if (willComplete) se.playPerfect();
       else              se.playStep();
     }
 
@@ -1062,8 +1064,8 @@ export default function App() {
     if (saturdayTroubleTimerRef.current) { clearTimeout(saturdayTroubleTimerRef.current); saturdayTroubleTimerRef.current = null; }
 
     setIsPlaying(true);
-    bgm.start(); // ユーザー操作直後なので autoplay 制限回避済み
-    se.prime();  // SE の AudioContext も同じ操作タイミングで生成
+    bgm.start();
+    se.prime();
 
     // 初回オーダー（Phase 1: 初級皿のみ）
     const beginnerDishes = DISHES.filter(d => d.steps.length === 3);
