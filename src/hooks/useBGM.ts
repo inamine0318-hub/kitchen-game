@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 
 // ─── 音名 → 周波数 (Hz) ────────────────────────────────────────────────
 const NOTE: Record<string, number> = {
@@ -180,6 +180,12 @@ export function useBGM() {
         masterRef.current = null;
       }, 500);
     }
+  }, []);
+
+  useEffect(() => () => {
+    runningRef.current = false;
+    if (schedulerRef.current) clearTimeout(schedulerRef.current);
+    ctxRef.current?.close().catch(() => {});
   }, []);
 
   return { start, stop, setPhase };

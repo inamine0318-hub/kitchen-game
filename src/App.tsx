@@ -1111,20 +1111,20 @@ export default function App() {
 
   // ── ゲームオーバー時レビュー生成 + ベストスコア保存 ──────────────
   useEffect(() => {
-    if (gameState.isGameOver) {
-      // まずローカル評を即表示し、Gemini が返ったら差し替え
-      setReview(getResultComment(gameState.score));
-      getMichelinReview(gameState.score).then(r => { if (r) setReview(r); }).catch(() => {});
+    if (!gameState.isGameOver) return;
+    let cancelled = false;
+    setReview(getResultComment(gameState.score));
+    getMichelinReview(gameState.score).then(r => { if (!cancelled && r) setReview(r); }).catch(() => {});
 
-      const savedBest = parseInt(localStorage.getItem('bestScore') || '0');
-      if (gameState.score > savedBest) {
-        const rank = getScoreRank(gameState.score);
-        localStorage.setItem('bestScore', gameState.score.toString());
-        localStorage.setItem('bestRank', rank.rank);
-        setBestScore(gameState.score);
-        setBestRank(rank.rank);
-      }
+    const savedBest = parseInt(localStorage.getItem('bestScore') || '0');
+    if (gameState.score > savedBest) {
+      const rank = getScoreRank(gameState.score);
+      localStorage.setItem('bestScore', gameState.score.toString());
+      localStorage.setItem('bestRank', rank.rank);
+      setBestScore(gameState.score);
+      setBestRank(rank.rank);
     }
+    return () => { cancelled = true; };
   }, [gameState.isGameOver, gameState.score]);
 
   // ── アンマウント時クリーンアップ ─────────────────────────────────

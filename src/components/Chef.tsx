@@ -33,16 +33,12 @@ const C = {
 const furLayers = (extra = '') =>
   [C.furHL, C.furShadow, C.furBase, extra].filter(Boolean).join(', ');
 
-export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = false, direction = 'right' }) {
-  const OL  = `1.5px solid ${C.outline}`;
-  const OLS = `1.2px solid ${C.outline}`;
+const FUR = furLayers();
+const OL  = `1.5px solid ${C.outline}`;
+const OLS = `1.2px solid ${C.outline}`;
+const ARM_TOP = 43;
 
-  // ─── 腕（coat より高い zIndex で独立レイヤーとして描画）─────────
-  // 外側 motion.div（position:relative）を基準に絶対配置する。
-  // coat top は head(22) + face(30) + neck(9) - marginTop(1) = 60px
-  // 腕は coat の top:1 位置 → outer motion.div から 61px
-  // head(26) + face(24) + neck(9) + coat.marginTop(-1) + coat arm offset(1) = 59
-  const ARM_TOP = 43;
+export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = false, direction = 'right' }) {
 
   const armLeft = (
     <motion.div
@@ -78,7 +74,7 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
       {/* 前足（クマの手・袖口からはっきり出ている） */}
       <div style={{
         position: 'absolute', top: 16, left: -2, right: -2, bottom: 0,
-        background: furLayers(),
+        background: FUR,
         border: OL,
         borderTop: 'none',
         borderRadius: '0 0 60% 60%',
@@ -155,7 +151,7 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
       {/* 前足（クマの手） */}
       <div style={{
         position: 'absolute', top: 16, left: -2, right: -2, bottom: 0,
-        background: furLayers(),
+        background: FUR,
         border: OL,
         borderTop: 'none',
         borderRadius: '0 0 60% 60%',
@@ -200,17 +196,15 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
             background: 'rgba(255,255,255,.18)',
           }} />
           {/* 調理中の炎スパーク */}
-          {isMoving && (
-            <motion.div
-              style={{
-                position: 'absolute', top: 2, right: 2, width: 6, height: 6,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle at 40% 40%,rgba(255,240,80,1) 0%,rgba(255,140,0,.9) 50%,rgba(255,60,0,.5) 100%)',
-              }}
-              animate={{ opacity: [1, 0.2, 1], scale: [1, 1.6, 1] }}
-              transition={{ repeat: Infinity, duration: 0.18 }}
-            />
-          )}
+          <motion.div
+            style={{
+              position: 'absolute', top: 2, right: 2, width: 6, height: 6,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle at 40% 40%,rgba(255,240,80,1) 0%,rgba(255,140,0,.9) 50%,rgba(255,60,0,.5) 100%)',
+            }}
+            animate={isMoving ? { opacity: [1, 0.2, 1], scale: [1, 1.6, 1] } : { opacity: 0, scale: 1 }}
+            transition={{ repeat: isMoving ? Infinity : 0, duration: 0.18 }}
+          />
         </div>
       </div>
     </motion.div>
@@ -247,7 +241,7 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
               ...(i === 0 ? { left: 2 } : { right: 2 }),
               width: 13, height: 13,
               borderRadius: '50%',
-              background: furLayers(),
+              background: FUR,
               border: OL,
               zIndex: 0,
               boxShadow: [
@@ -268,7 +262,7 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
           {/* 頭部＋顔 一体型楕円（境界線なし） */}
           <div style={{
             position: 'absolute', top: 2, left: 3, width: 38, height: 34,
-            background: furLayers(),
+            background: FUR,
             border: OL,
             borderRadius: '52% 52% 48% 48%',
             zIndex: 1,
@@ -282,7 +276,7 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
             <div style={{
               position: 'absolute', top: 3, left: 7, width: 16, height: 10,
               background: 'radial-gradient(ellipse,rgba(255,228,165,.45) 0%,transparent 100%)',
-              borderRadius: '50%', filter: 'blur(2.5px)',
+              borderRadius: '50%', filter: 'blur(2.5px)', willChange: 'transform',
             }} />
 
             {/* 眉毛 */}
@@ -323,8 +317,8 @@ export const Chef: React.FC<ChefProps> = React.memo(function Chef({ isMoving = f
             </div>
 
             {/* ほっぺ */}
-            <div style={{ position: 'absolute', width: 7, height: 5, background: C.cheek, borderRadius: '50%', bottom: 5, left: 1, filter: 'blur(1.5px)' }} />
-            <div style={{ position: 'absolute', width: 7, height: 5, background: C.cheek, borderRadius: '50%', bottom: 5, right: 1, filter: 'blur(1.5px)' }} />
+            <div style={{ position: 'absolute', width: 7, height: 5, background: C.cheek, borderRadius: '50%', bottom: 5, left: 1, filter: 'blur(1.5px)', willChange: 'transform' }} />
+            <div style={{ position: 'absolute', width: 7, height: 5, background: C.cheek, borderRadius: '50%', bottom: 5, right: 1, filter: 'blur(1.5px)', willChange: 'transform' }} />
           </div>
         </div>
 
