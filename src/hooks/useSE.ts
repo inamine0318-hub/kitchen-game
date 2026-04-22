@@ -109,5 +109,34 @@ export function useSE() {
     });
   }, [tone]);
 
-  return { prime, playStep, playPerfect, playCombo, playMiss, playWarning };
+  // ─── リザルト音（ランク別・1秒以内）────────────────────────────────
+  const playResult = useCallback((rank: string) => {
+    if (rank === 'S') {
+      // 華やかな6音ファンファーレ
+      tone(523,  523,  0.07, 'sine',     0.20);
+      tone(659,  659,  0.07, 'sine',     0.18, 0.08);
+      tone(784,  784,  0.07, 'sine',     0.18, 0.16);
+      tone(1047, 1047, 0.26, 'sine',     0.24, 0.24);
+      tone(1319, 1319, 0.22, 'sine',     0.20, 0.34);
+      tone(2093, 2093, 0.18, 'triangle', 0.07, 0.40);
+    } else if (rank === 'A') {
+      // 明るい3音上昇
+      tone(659,  659,  0.08, 'sine', 0.20);
+      tone(784,  784,  0.08, 'sine', 0.18, 0.09);
+      tone(1047, 1047, 0.26, 'sine', 0.24, 0.18);
+    } else if (rank === 'B') {
+      // 標準2音
+      tone(523, 523, 0.08, 'sine', 0.18);
+      tone(784, 784, 0.22, 'sine', 0.20, 0.10);
+    } else if (rank === 'C') {
+      // 弱め1音フェード
+      tone(440, 392, 0.30, 'triangle', 0.14);
+    } else {
+      // Dランク: 下降2音
+      tone(330, 196, 0.32, 'sawtooth', 0.12);
+      tone(196, 110, 0.22, 'sine',     0.08, 0.22);
+    }
+  }, [tone]);
+
+  return { prime, playStep, playPerfect, playCombo, playMiss, playWarning, playResult };
 }

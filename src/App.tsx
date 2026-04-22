@@ -407,6 +407,7 @@ export default function App() {
 
   // ─── コンボ State ────────────────────────────────────────────────
   const [comboPopup,          setComboPopup]          = useState<ComboPopup | null>(null);
+  const [streakBadge,         setStreakBadge]          = useState<number | null>(null);
   const [timeFreezeRemaining, setTimeFreezeRemaining] = useState(0);
 
   // ─── トラブル State ──────────────────────────────────────────────
@@ -458,6 +459,8 @@ export default function App() {
   const currentStageIdxRef    = useRef(0);
   /** ステージ遷移アナウンスの前ステージ追跡 ref */
   const prevStageIdxRef       = useRef(0);
+  const streakRef             = useRef(0);
+  const streakTimeoutRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** generateOrder 内でフェーズ判定に使う残り時間 ref */
   const timeLeftRef           = useRef(GAME_DURATION);
 
@@ -542,6 +545,16 @@ export default function App() {
    * @returns 加算するコンボボーナス点
    */
   const handleComboClear = useCallback((completedCount: number): number => {
+    // ─ ストリークカウント更新 ─
+    streakRef.current += completedCount;
+    const streak = streakRef.current;
+    if (streak === 3 || streak === 5 || (streak >= 10 && streak % 5 === 0)) {
+      se.playCombo(streak);
+      setStreakBadge(streak);
+      if (streakTimeoutRef.current) clearTimeout(streakTimeoutRef.current);
+      streakTimeoutRef.current = setTimeout(() => setStreakBadge(null), 1400);
+    }
+
     const { bonus, freeze } = getComboReward(completedCount);
     if (bonus === 0) return 0;
 
@@ -971,7 +984,11 @@ export default function App() {
         }
         return { ...prev, orders: nextOrders };
       });
-      if (missTriggered) se.playMiss(); // updater 同期完了後に SE 再生
+      if (missTriggered) {
+        se.playMiss();
+        streakRef.current = 0;
+        setStreakBadge(null);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -1043,6 +1060,8 @@ export default function App() {
     setCommentary('厨房へ戻ったか。次は期待しているぞ。');
     // コンボ・トラブルリセット
     setComboPopup(null);
+    setStreakBadge(null);
+    streakRef.current = 0;
     setTimeFreezeRemaining(0);
     setActiveTrouble(null);
     setTroubleRemaining(0);
@@ -1115,6 +1134,8 @@ export default function App() {
   useEffect(() => {
     if (!gameState.isGameOver) return;
     let cancelled = false;
+    const rank = getScoreRank(gameState.score);
+    setTimeout(() => se.playResult(rank.rank), 400); // BGMフェードアウト後に再生
     setReview(getResultComment(gameState.score));
     getMichelinReview(gameState.score).then(r => { if (!cancelled && r) setReview(r); }).catch(() => {});
 
@@ -1137,6 +1158,7 @@ export default function App() {
       if (regularTimerRef.current)       clearInterval(regularTimerRef.current);
       if (announcementTimeoutRef.current) clearTimeout(announcementTimeoutRef.current);
       if (comboTimeoutRef.current)       clearTimeout(comboTimeoutRef.current);
+      if (streakTimeoutRef.current)      clearTimeout(streakTimeoutRef.current);
       if (movingTimerRef.current)        clearTimeout(movingTimerRef.current);
       if (saturdayTroubleTimerRef.current) clearTimeout(saturdayTroubleTimerRef.current);
       popupTimersRef.current.forEach(clearTimeout);
@@ -1581,6 +1603,34 @@ export default function App() {
                       </span>
                     )}
                   </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── ストリークバッジ ── */}
+          <AnimatePresence>
+            {streakBadge && (
+              <motion.div
+                key={`streak-${streakBadge}`}
+                initial={{ opacity: 0, y: 8, scale: 0.85 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.18 }}
+                className="absolute top-2 left-2 z-[66] pointer-events-none"
+              >
+                <div
+                  className="px-2 py-0.5 rounded font-black text-xs"
+                  style={{
+                    background: streakBadge >= 10 ? 'linear-gradient(135deg,#c8a000,#ff6000)' :
+                                streakBadge >= 5  ? 'linear-gradient(135deg,#1a6040,#30c080)' :
+                                                    'rgba(0,0,0,0.65)',
+                    color: '#fff',
+                    border: `1px solid ${streakBadge >= 10 ? '#ffb040' : streakBadge >= 5 ? '#40e090' : '#606060'}`,
+                    textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                  }}
+                >
+                  COMBO ×{streakBadge}
                 </div>
               </motion.div>
             )}
